@@ -3,6 +3,7 @@ import { useWasteBank } from '../context/WasteBankContext';
 import { compressImageFile } from '../utils/imageCompressor';
 import { downloadBackupJson, readBackupFile } from '../utils/backupRestore';
 import { BackupModuleKey, WasteBankBackupData } from '../types';
+import { PurgeDatabaseModal } from './PurgeDatabaseModal';
 import { 
   Building2, 
   Image as ImageIcon, 
@@ -62,6 +63,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ initialTab = 'all'
 
   // Settings view mode / tabs
   const [activeSettingsTab, setActiveSettingsTab] = useState<'all' | 'org' | 'depts' | 'alerts' | 'backup'>(initialTab);
+  const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
 
   React.useEffect(() => {
     if (initialTab) {
@@ -113,7 +115,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ initialTab = 'all'
   // Success toast
   const [successToast, setSuccessToast] = useState('');
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
 
   // --- Org Info Handlers ---
   const handleSaveOrgInfo = (e: React.FormEvent) => {
@@ -953,20 +955,35 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ initialTab = 'all'
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('คำเตือน: คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับสู่ค่าเริ่มต้นตามตัวอย่าง อบต.ตาคลี หรือไม่? (ข้อมูลที่บันทึกใหม่จะหายไป)')) {
-                  resetToDefaultData();
-                  setSuccessToast('รีเซ็ตข้อมูลสู่ค่าเริ่มต้นเรียบร้อยแล้ว');
-                  setTimeout(() => setSuccessToast(''), 3000);
-                }
-              }}
-              className="px-3 py-1.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-1 self-start sm:self-auto border border-slate-200"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>รีเซ็ตสู่ค่าเริ่มต้นระบบ</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+              {currentUser?.role === 'superadmin' && (
+                <button
+                  type="button"
+                  id="settings-superadmin-purge-btn"
+                  onClick={() => setIsPurgeModalOpen(true)}
+                  className="px-3 py-1.5 text-xs text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition flex items-center gap-1.5 shadow-xs font-semibold"
+                  title="ล้างข้อมูลในฐานข้อมูล (สิทธิ์ผู้ดูแลระบบสูงสุด Super Admin เท่านั้น)"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>ล้างข้อมูลระบบ (Super Admin)</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('คำเตือน: คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับสู่ค่าเริ่มต้นตามตัวอย่าง อบต.ตาคลี หรือไม่? (ข้อมูลที่บันทึกใหม่จะหายไป)')) {
+                    resetToDefaultData();
+                    setSuccessToast('รีเซ็ตข้อมูลสู่ค่าเริ่มต้นเรียบร้อยแล้ว');
+                    setTimeout(() => setSuccessToast(''), 3000);
+                  }
+                }}
+                className="px-3 py-1.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-1 border border-slate-200"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>รีเซ็ตสู่ค่าเริ่มต้นระบบ</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1174,6 +1191,12 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ initialTab = 'all'
           </div>
         </div>
       )}
+
+      {/* Super Admin Database Purge Modal */}
+      <PurgeDatabaseModal
+        isOpen={isPurgeModalOpen}
+        onClose={() => setIsPurgeModalOpen(false)}
+      />
     </div>
   );
 };

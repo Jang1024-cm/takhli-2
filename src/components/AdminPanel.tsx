@@ -40,7 +40,8 @@ import {
   FileText,
   History,
   RefreshCw,
-  CheckCircle2
+  CheckCircle2,
+  Crown
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -55,23 +56,28 @@ import {
   Legend 
 } from 'recharts';
 import confetti from 'canvas-confetti';
-import { WasteCategory, WastePriceItem, User } from '../types';
+import { WasteCategory, WastePriceItem, User, UserRole } from '../types';
 import { WelfareAdminSection } from './WelfareAdminSection';
 import { AdminSettings } from './AdminSettings';
 import { MemberProfileModal } from './MemberProfileModal';
 import { ExecutiveSummaryA4Modal } from './ExecutiveSummaryA4Modal';
 import { ActivityLogsView } from './ActivityLogsView';
+import { PurgeDatabaseModal } from './PurgeDatabaseModal';
 import { exportMembersToCsv, downloadCsvForExcel } from '../utils/backupRestore';
 import { compressImageFile } from '../utils/imageCompressor';
 
 interface AdminPanelProps {
   onOpenStatementModalForMember: (memberCode: string) => void;
+  onOpenWelfareStatementForMember?: (memberCode: string) => void;
   onOpenAlertsModalForMember: (memberCode: string, depositId?: string) => void;
+  onOpenSheetsHub?: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   onOpenStatementModalForMember,
-  onOpenAlertsModalForMember
+  onOpenWelfareStatementForMember,
+  onOpenAlertsModalForMember,
+  onOpenSheetsHub
 }) => {
   const { 
     currentUser, 
@@ -115,6 +121,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [activeAdminSubTab, setActiveAdminSubTab] = useState<'overview' | 'deposit' | 'withdrawals' | 'prices' | 'members' | 'welfare' | 'alerts' | 'logs' | 'orgSettings'>('overview');
   const [isAdminNavCollapsed, setIsAdminNavCollapsed] = useState<boolean>(false);
   const [isExecutiveSummaryModalOpen, setIsExecutiveSummaryModalOpen] = useState<boolean>(false);
+  const [isPurgeModalOpen, setIsPurgeModalOpen] = useState<boolean>(false);
 
   // Edit Full Price Item State
   const [editingPriceFullItem, setEditingPriceFullItem] = useState<WastePriceItem | null>(null);
@@ -296,6 +303,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
+  const handleRoleChange = (memberCode: string, newRole: UserRole) => {
+    const res = updateUserRole(memberCode, newRole);
+    if (res.success) {
+      setPermissionToast(res.message);
+      setTimeout(() => setPermissionToast(null), 3500);
+    } else {
+      alert(res.message);
+    }
+  };
+
+  // Filter state
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+
   // Filtered members
   const filteredUsers = users.filter(u => {
     const matchesSearch = u.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
@@ -303,6 +323,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           u.email.toLowerCase().includes(memberSearch.toLowerCase()) ||
                           (u.nationalId && u.nationalId.includes(memberSearch));
     const matchesDept = departmentFilter === 'all' || u.department === departmentFilter;
+    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
 
     let matchesPerm = true;
     if (permissionFilter === 'active') {
@@ -315,7 +336,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       matchesPerm = u.canWithdraw === false;
     }
 
-    return matchesSearch && matchesDept && matchesPerm;
+    return matchesSearch && matchesDept && matchesRole && matchesPerm;
   });
 
   // Pagination & custom rows per page for members
@@ -332,7 +353,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [addMemberPhone, setAddMemberPhone] = useState<string>('');
   const [addMemberCode, setAddMemberCode] = useState<string>('');
   const [addMemberPassword, setAddMemberPassword] = useState<string>('123456');
-  const [addMemberRole, setAddMemberRole] = useState<'member' | 'admin'>('member');
+  const [addMemberRole, setAddMemberRole] = useState<UserRole>('member');
   const [addMemberWelfare, setAddMemberWelfare] = useState<boolean>(true);
   const [addMemberAvatar, setAddMemberAvatar] = useState<string>('');
   const [addMemberIsActive, setAddMemberIsActive] = useState<boolean>(true);
@@ -464,12 +485,73 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </div>
 
-          {/* Quick Action Buttons for Alerts and Executive A4 Summary */}
+          {/* Quick Action Buttons for Super Admin Purge, Sheets Hub, A4 Documents, Alerts, and Executive Summary */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Super Admin Database Purge Button (Only visible if currentUser?.role === 'superadmin') */}
+            {currentUser?.role === 'superadmin' && (
+              <button
+                type="button"
+                id="btn-superadmin-purge"
+                onClick={() => setIsPurgeModalOpen(true)}
+                className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center space-x-1.5 active:scale-95 border border-rose-700 animate-pulse"
+                title="ล้างข้อมูลในฐานข้อมูล (สิทธิ์ผู้ดูแลระบบสูงสุด Super Admin เท่านั้น)"
+              >
+                <Trash2 className="w-4 h-4 text-rose-100" />
+                <span>ล้างข้อมูลระบบ (Super Admin)</span>
+              </button>
+            )}
+
+            {/* Google Sheets Hub & Code.gs Button */}
+            {onOpenSheetsHub && (
+              <button
+                type="button"
+                id="btn-open-sheets-hub"
+                onClick={onOpenSheetsHub}
+                className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs rounded-xl shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95 border border-emerald-300"
+                title="เปิด 3 แผ่นงาน Google Sheets & Code.gs สคริปต์อัตโนมัติ"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                <span className="hidden sm:inline">เปิด 3 แผ่นงาน</span>
+                <span>Sheets & Code.gs</span>
+              </button>
+            )}
+
+            {/* A4 Waste Deposit Statement Button */}
             <button
               type="button"
+              id="btn-open-waste-statement-a4"
+              onClick={() => onOpenStatementModalForMember(currentUser?.memberCode || 'MB001')}
+              className="px-3 py-2 bg-teal-50 hover:bg-teal-100 text-teal-900 font-bold text-xs rounded-xl shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95 border border-teal-300"
+              title="พิมพ์ยอดฝากขยะ A4 (Statement & ใบเสร็จรับเงิน)"
+            >
+              <Printer className="w-4 h-4 text-teal-700" />
+              <span>ยอดฝากขยะ A4</span>
+            </button>
+
+            {/* A4 Welfare Certificate Statement Button */}
+            <button
+              type="button"
+              id="btn-open-welfare-statement-a4"
+              onClick={() => {
+                if (onOpenWelfareStatementForMember) {
+                  onOpenWelfareStatementForMember(currentUser?.memberCode || 'MB001');
+                } else {
+                  onOpenStatementModalForMember(currentUser?.memberCode || 'MB001');
+                }
+              }}
+              className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs rounded-xl shadow-2xs transition-all flex items-center space-x-1.5 active:scale-95 border border-purple-300"
+              title="พิมพ์ใบรับรองสวัสดิการ A4"
+            >
+              <HeartHandshake className="w-4 h-4 text-purple-700" />
+              <span>ใบรับรองสวัสดิการ A4</span>
+            </button>
+
+            {/* Telegram & Email Alerts Button */}
+            <button
+              type="button"
+              id="btn-open-alerts"
               onClick={() => setActiveAdminSubTab('alerts')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 active:scale-95 border ${
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center space-x-1.5 active:scale-95 border ${
                 activeAdminSubTab === 'alerts'
                   ? 'bg-amber-500 text-white border-amber-600 ring-2 ring-amber-400'
                   : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
@@ -477,17 +559,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               title="ระบบแจ้งเตือนอัตโนมัติ (Telegram & Email Alert)"
             >
               <Bell className="w-4 h-4 text-amber-600" />
-              <span>ระบบแจ้งเตือนอัตโนมัติ (Telegram & Email Alert)</span>
+              <span>ระบบแจ้งเตือน</span>
             </button>
 
+            {/* Executive Summary One-Page A4 Button */}
             <button
               type="button"
+              id="btn-open-executive-summary"
               onClick={() => setIsExecutiveSummaryModalOpen(true)}
               className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center space-x-1.5 active:scale-95 border border-emerald-800"
               title="สรุปรายละเอียดทั้งหมดของระบบเป็น A4 One-Page (พิมพ์ PDF และส่งอีเมลอัตโนมัติ)"
             >
               <FileText className="w-4 h-4 text-emerald-200" />
-              <span>สรุปรายงานระบบ วันเพจ A4 (พิมพ์ PDF / ส่งอีเมล)</span>
+              <span>สรุปวันเพจ A4</span>
             </button>
           </div>
         </div>
@@ -1372,6 +1456,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <option value="canWithdraw">🟢 สิทธิ์ขอถอนเงินปกติ</option>
                 <option value="blockedWithdraw">🟠 ระงับสิทธิ์ขอถอนเงิน</option>
               </select>
+
+              {/* Role Level Filter */}
+              <select
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="text-xs border border-slate-300 rounded-xl px-3 py-1.5 bg-white font-medium"
+              >
+                <option value="all">ทุกระดับสิทธิ์</option>
+                <option value="superadmin">👑 Super Admin ({users.filter(u => u.role === 'superadmin').length})</option>
+                <option value="admin">⭐ Admin ({users.filter(u => u.role === 'admin').length})</option>
+                <option value="finance">💼 Finance ({users.filter(u => u.role === 'finance').length})</option>
+                <option value="member">👤 Member ({users.filter(u => u.role === 'member' || !u.role).length})</option>
+              </select>
             </div>
 
             {/* Rows Per Page Controls */}
@@ -1516,19 +1616,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           <span className="text-slate-400">-</span>
                         )}
                       </td>
-                      <td className="p-3 text-center">
-                        <select
-                          value={u.role}
-                          onChange={(e) => updateUserRole(u.memberCode, e.target.value as any)}
-                          className={`text-[11px] font-semibold rounded-lg px-2 py-1 border ${
-                            u.role === 'admin'
-                              ? 'bg-amber-50 text-amber-900 border-amber-300'
-                              : 'bg-emerald-50 text-emerald-900 border-emerald-300'
-                          }`}
-                        >
-                          <option value="member">Member</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                      <td className="p-3 text-center whitespace-nowrap">
+                        {u.memberCode === 'SUPER01' ? (
+                          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                            <Crown className="w-3 h-3 text-rose-600" />
+                            <span>Super Admin (หลัก)</span>
+                          </span>
+                        ) : (
+                          <select
+                            value={u.role || 'member'}
+                            disabled={u.role === 'superadmin' && currentUser?.role !== 'superadmin'}
+                            onChange={(e) => handleRoleChange(u.memberCode, e.target.value as UserRole)}
+                            className={`text-[11px] font-bold rounded-lg px-2 py-1 border transition shadow-2xs cursor-pointer ${
+                              u.role === 'superadmin'
+                                ? 'bg-rose-50 text-rose-900 border-rose-300'
+                                : u.role === 'admin'
+                                ? 'bg-amber-50 text-amber-900 border-amber-300'
+                                : u.role === 'finance'
+                                ? 'bg-teal-50 text-teal-900 border-teal-300'
+                                : 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                            } ${u.role === 'superadmin' && currentUser?.role !== 'superadmin' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            title={u.role === 'superadmin' && currentUser?.role !== 'superadmin' ? 'เฉพาะ Super Admin เท่านั้นที่สามารถเปลี่ยนสิทธิ์ได้' : 'คลิกเพื่อเปลี่ยนระดับสิทธิ์'}
+                          >
+                            <option value="member">👤 Member</option>
+                            <option value="finance">💼 Finance</option>
+                            <option value="admin">⭐ Admin</option>
+                            {(currentUser?.role === 'superadmin' || u.role === 'superadmin') && (
+                              <option value="superadmin">👑 Super Admin</option>
+                            )}
+                          </select>
+                        )}
                       </td>
 
                       {/* สิทธิ์เข้าใช้งานระบบ (Active Status Toggle) */}
@@ -2047,11 +2164,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </label>
                   <select
                     value={addMemberRole}
-                    onChange={(e) => setAddMemberRole(e.target.value as any)}
-                    className="w-full text-xs font-semibold px-3 py-2 border border-slate-300 rounded-xl bg-white"
+                    onChange={(e) => setAddMemberRole(e.target.value as UserRole)}
+                    className="w-full text-xs font-semibold px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="member">สมาชิกทั่วไป (Member)</option>
+                    <option value="finance">เจ้าหน้าที่การเงิน (Finance)</option>
                     <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+                    {currentUser?.role === 'superadmin' && (
+                      <option value="superadmin">👑 ผู้ดูแลระบบสูงสุด (Super Admin)</option>
+                    )}
                   </select>
                 </div>
               </div>
@@ -2261,6 +2382,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       <ExecutiveSummaryA4Modal
         isOpen={isExecutiveSummaryModalOpen}
         onClose={() => setIsExecutiveSummaryModalOpen(false)}
+      />
+
+      {/* MODAL: Granular Database Purge (Super Admin Only) */}
+      <PurgeDatabaseModal
+        isOpen={isPurgeModalOpen}
+        onClose={() => setIsPurgeModalOpen(false)}
       />
     </div>
   );

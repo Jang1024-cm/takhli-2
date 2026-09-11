@@ -20,7 +20,7 @@ function WasteBankApp() {
   const [activeTab, setActiveTab] = useState<'member' | 'admin'>('member');
 
   // Determine user role
-  const isAdminOrFinance = currentUser?.role === 'admin' || currentUser?.role === 'finance';
+  const isAdminOrFinance = currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || currentUser?.role === 'finance';
 
   // Sync activeTab strictly when user logs in: members get 'member', admins get 'admin'
   useEffect(() => {
@@ -118,8 +118,10 @@ function WasteBankApp() {
         )}
         {isAdminOrFinance && activeTab === 'admin' && (
           <AdminPanel
-            onOpenStatementModalForMember={(code) => handleOpenWelfareStatementForUser(code)}
+            onOpenStatementModalForMember={(code) => handleOpenStatementForUser(code)}
+            onOpenWelfareStatementForMember={(code) => handleOpenWelfareStatementForUser(code)}
             onOpenAlertsModalForMember={(code, depId) => handleOpenAlertsForUser(code, depId)}
+            onOpenSheetsHub={() => setIsSheetsHubOpen(true)}
           />
         )}
       </main>

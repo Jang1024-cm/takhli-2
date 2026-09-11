@@ -132,8 +132,26 @@ const THAI_SURNAMES = [
   'วัฒนศักดิ์', 'บุญเรือง', 'ใจบุญ', 'พานิชย์เจริญ', 'คงกะพัน', 'ทองธรรมชาติ'
 ];
 
+export const SUPER_ADMIN_USER: User = {
+  id: 'u-superadmin',
+  memberCode: 'SUPER01',
+  name: 'ผู้ดูแลระบบสูงสุด (Super Admin)',
+  email: 'superadmin@takhli.go.th',
+  department: 'สำนักปลัด / ศูนย์เทคโนโลยีสารสนเทศ อบต.ตาคลี',
+  role: 'superadmin',
+  joinedDate: '01/01/2026',
+  phone: '056-261-000',
+  password: 'superadmin123',
+  nationalId: '9999999999999',
+  welfareEnrolled: true,
+  welfareAutoDeduct: true,
+  isActive: true,
+  canWithdraw: true
+};
+
 function generate150StaffMembers(): User[] {
   const staff: User[] = [
+    SUPER_ADMIN_USER,
     {
       id: 'u-admin',
       memberCode: 'ADM01',

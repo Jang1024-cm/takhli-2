@@ -4,6 +4,7 @@ import {
   Recycle, 
   UserCheck, 
   Shield, 
+  ShieldAlert,
   FileSpreadsheet, 
   Bell, 
   RefreshCw, 
@@ -43,7 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { currentUser, users, switchUser, logout, isSyncing, syncWithGoogleSheet, lastSynced, orgConfig } = useWasteBank();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState<boolean>(false);
-  const isAdminOrFinance = currentUser?.role === 'admin' || currentUser?.role === 'finance';
+  const isAdminOrFinance = currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || currentUser?.role === 'finance';
 
   const handleMobileNav = (action: () => void) => {
     action();
@@ -178,10 +179,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </div>
                       <div className="mt-1">
                         <span className={`inline-flex items-center space-x-1 text-[10px] font-semibold px-2 py-0.5 rounded-md ${
-                          currentUser.role === 'admin' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          currentUser.role === 'superadmin'
+                            ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                            : currentUser.role === 'admin'
+                            ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                         }`}>
-                          {currentUser.role === 'admin' ? <Shield className="w-3 h-3 text-amber-600" /> : <UserCheck className="w-3 h-3 text-emerald-600" />}
-                          <span>{currentUser.role === 'admin' ? 'ผู้ดูแลระบบ (Admin)' : 'พนักงาน / สมาชิกทั่วไป'}</span>
+                          {currentUser.role === 'superadmin' ? (
+                            <ShieldAlert className="w-3 h-3 text-rose-600" />
+                          ) : currentUser.role === 'admin' ? (
+                            <Shield className="w-3 h-3 text-amber-600" />
+                          ) : (
+                            <UserCheck className="w-3 h-3 text-emerald-600" />
+                          )}
+                          <span>
+                            {currentUser.role === 'superadmin'
+                              ? 'ผู้ดูแลระบบสูงสุด (Super Admin)'
+                              : currentUser.role === 'admin'
+                              ? 'ผู้ดูแลระบบ (Admin)'
+                              : 'พนักงาน / สมาชิกทั่วไป'}
+                          </span>
                         </span>
                       </div>
                     </div>
@@ -190,9 +207,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {isAdminOrFinance && (
                       <>
                         <div className="px-3 py-1.5 border-b border-slate-100 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-                          ทดสอบสลับบัญชี (เฉพาะแอดมิน)
+                          ทดสอบสลับบัญชี (เฉพาะแอดมิน / Super Admin)
                         </div>
-                        {users.slice(0, 5).map(u => (
+                        {users.slice(0, 6).map(u => (
                           <button
                             key={u.id}
                             type="button"

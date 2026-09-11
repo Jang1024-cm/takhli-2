@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWasteBank } from '../context/WasteBankContext';
 import { compressImageFile } from '../utils/imageCompressor';
-import { User } from '../types';
+import { User, UserRole } from '../types';
 import { 
   X, 
   Upload, 
@@ -17,7 +17,8 @@ import {
   Camera,
   ShieldCheck,
   ShieldAlert,
-  Banknote
+  Banknote,
+  Crown
 } from 'lucide-react';
 
 interface MemberProfileModalProps {
@@ -47,6 +48,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+  const [userRole, setUserRole] = useState<UserRole>('member');
   const [isActive, setIsActive] = useState<boolean>(true);
   const [canWithdraw, setCanWithdraw] = useState<boolean>(true);
   const [statusReason, setStatusReason] = useState<string>('');
@@ -64,6 +66,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
       setEmail(user.email);
       setPhone(user.phone || '');
       setAvatarUrl(user.avatarUrl);
+      setUserRole(user.role || 'member');
       setIsActive(user.isActive !== false);
       setCanWithdraw(user.canWithdraw !== false);
       setStatusReason(user.statusReason || '');
@@ -134,7 +137,8 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
       avatarUrl: avatarUrl
     };
 
-    if (currentUser?.role === 'admin') {
+    if (currentUser?.role === 'admin' || currentUser?.role === 'superadmin') {
+      profileData.role = userRole;
       profileData.isActive = isActive;
       profileData.canWithdraw = canWithdraw;
       profileData.statusReason = statusReason.trim() || undefined;
@@ -319,17 +323,59 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
             </div>
           </div>
 
-          {/* Admin Permission Controls (สิทธิ์การเข้าใช้งาน & สิทธิ์การขอถอนเงิน) */}
-          {currentUser?.role === 'admin' && (
+          {/* Admin Permission Controls (สิทธิ์การเข้าใช้งาน & สิทธิ์การขอถอนเงิน & ระดับสิทธิ์) */}
+          {(currentUser?.role === 'admin' || currentUser?.role === 'superadmin') && (
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>การเปิด/ปิดสิทธิ์การใช้งานของสมาชิก (ผู้ดูแลระบบ อบต.ตาคลี)</span>
+                  <span>การจัดการระดับสิทธิ์และการใช้งาน (ผู้ดูแลระบบ)</span>
                 </span>
                 <span className="text-[10px] text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-mono">
                   {user.memberCode}
                 </span>
+              </div>
+
+              {/* Role Selector */}
+              <div className="bg-white p-3 rounded-xl border border-slate-200">
+                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-1.5">
+                  <Crown className="w-3.5 h-3.5 text-amber-600" />
+                  <span>ระดับสิทธิ์ในระบบ (Role Authorization)</span>
+                </label>
+                {user.memberCode === 'SUPER01' ? (
+                  <div className="flex items-center space-x-2 text-xs text-rose-700 bg-rose-50 px-3 py-2 rounded-lg border border-rose-200 font-semibold">
+                    <span>👑 บัญชีผู้ดูแลระบบหลัก (SUPER01) - สิทธิ์ผู้ดูแลระบบสูงสุด (Super Admin) ถาวร</span>
+                  </div>
+                ) : (
+                  <div>
+                    <select
+                      value={userRole}
+                      disabled={user.role === 'superadmin' && currentUser?.role !== 'superadmin'}
+                      onChange={(e) => setUserRole(e.target.value as UserRole)}
+                      className={`w-full text-xs font-semibold rounded-lg px-3 py-2 border focus:ring-2 focus:ring-emerald-500 cursor-pointer ${
+                        userRole === 'superadmin'
+                          ? 'bg-rose-50 text-rose-900 border-rose-300'
+                          : userRole === 'admin'
+                          ? 'bg-amber-50 text-amber-900 border-amber-300'
+                          : userRole === 'finance'
+                          ? 'bg-teal-50 text-teal-900 border-teal-300'
+                          : 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                      }`}
+                    >
+                      <option value="member">สมาชิกทั่วไป (Member) - ดูข้อมูลส่วนตัวและฝากขยะ</option>
+                      <option value="finance">เจ้าหน้าที่การเงิน (Finance) - อนุมัติถอนเงินและตรวจสอบบัญชี</option>
+                      <option value="admin">ผู้ดูแลระบบ (Admin) - จัดการข้อมูลสมาชิก ราคา และรายงาน</option>
+                      {(currentUser?.role === 'superadmin' || userRole === 'superadmin') && (
+                        <option value="superadmin">ผู้ดูแลระบบสูงสุด (Super Admin) - ล้างฐานข้อมูลและคุมทุกสิทธิ์</option>
+                      )}
+                    </select>
+                    {currentUser?.role !== 'superadmin' && (
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        * เฉพาะ Super Admin เท่านั้นที่สามารถแต่งตั้งสิทธิ์ Super Admin ได้
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

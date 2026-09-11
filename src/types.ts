@@ -1,4 +1,13 @@
-export type UserRole = 'admin' | 'finance' | 'member';
+export type UserRole = 'superadmin' | 'admin' | 'finance' | 'member';
+
+export interface PurgeDatabaseOptions {
+  deleteDeposits: boolean;
+  deleteWithdrawals: boolean;
+  deleteWelfareRecords: boolean;
+  deleteActivityLogs: boolean;
+  deleteMembers: boolean;
+  resetPricesToDefault: boolean;
+}
 
 export type WasteCategory = 'กระดาษ' | 'พลาสติก' | 'โลหะ' | 'แก้ว';
 
@@ -283,9 +292,12 @@ export type ActivityLogAction =
   | 'print_document' 
   | 'profile_update' 
   | 'user_status_change'
+  | 'role_change'
+  | 'update_user'
   | 'price_update'
   | 'system_sync'
-  | 'backup_action';
+  | 'backup_action'
+  | 'purge_database';
 
 export interface ActivityLog {
   id: string;

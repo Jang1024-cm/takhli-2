@@ -44,7 +44,7 @@ export const TelegramEmailAlertModal: React.FC<TelegramEmailAlertModalProps> = (
     updateAlertConfig 
   } = useWasteBank();
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
 
   // Navigation tab: 'group' | 'individual' | 'settings'
   const [activeTab, setActiveTab] = useState<'group' | 'individual' | 'settings'>('group');

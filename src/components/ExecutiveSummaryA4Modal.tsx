@@ -153,9 +153,9 @@ export const ExecutiveSummaryA4Modal: React.FC<ExecutiveSummaryA4ModalProps> = (
   const netWelfareFund = totalWelfareFund - totalWelfareExpense;
 
   // Active admin name for signature
-  const activeAdmin = currentUser?.role === 'admin' 
+  const activeAdmin = (currentUser?.role === 'admin' || currentUser?.role === 'superadmin')
     ? currentUser 
-    : users.find(u => u.role === 'admin');
+    : (users.find(u => u.role === 'admin') || users.find(u => u.role === 'superadmin'));
   const buyerStaffName = activeAdmin?.name || 'นายชาญชัย รักษ์ตาคลี';
 
   // Executive predefined recipients

@@ -43,9 +43,9 @@ export const WeightSlipModal: React.FC<WeightSlipModalProps> = ({
 
   const currentDeposit = memberDeposits.find(d => d.id === activeDepositId) || memberDeposits[0];
 
-  const activeAdmin = currentUser?.role === 'admin' 
+  const activeAdmin = (currentUser?.role === 'admin' || currentUser?.role === 'superadmin')
     ? currentUser 
-    : users.find(u => u.role === 'admin');
+    : (users.find(u => u.role === 'admin') || users.find(u => u.role === 'superadmin'));
   const buyerOfficerName = currentDeposit?.recordedBy || activeAdmin?.name || 'นายสมเกียรติ มั่นคง';
 
   const slipNumber = currentDeposit?.receiptNumber || `WS-${currentDeposit?.date ? currentDeposit.date.replace(/\//g, '') : '00'}-${(currentDeposit?.id || '01').slice(-3)}`;

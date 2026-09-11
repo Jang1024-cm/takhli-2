@@ -205,7 +205,7 @@ export const ActivityLogsView: React.FC<ActivityLogsViewProps> = ({
             <span>ส่งออก CSV ({filteredLogs.length})</span>
           </button>
 
-          {currentUser?.role === 'admin' && !filterMemberCode && (
+          {(currentUser?.role === 'admin' || currentUser?.role === 'superadmin') && !filterMemberCode && (
             <button
               type="button"
               onClick={() => {
@@ -268,7 +268,7 @@ export const ActivityLogsView: React.FC<ActivityLogsViewProps> = ({
                 <option value="all">สมาชิกทุกคน ({users.length} ท่าน)</option>
                 {users.map(u => (
                   <option key={u.id} value={u.memberCode}>
-                    {u.memberCode}: {u.name} ({u.role === 'admin' ? 'แอดมิน' : 'สมาชิก'})
+                    {u.memberCode}: {u.name} ({u.role === 'superadmin' ? 'ผู้ดูแลสูงสุด' : u.role === 'admin' ? 'แอดมิน' : u.role === 'finance' ? 'การเงิน' : 'สมาชิก'})
                   </option>
                 ))}
               </select>
@@ -377,8 +377,16 @@ export const ActivityLogsView: React.FC<ActivityLogsViewProps> = ({
                       <div className="flex items-center space-x-1.5 text-[10px] text-slate-500">
                         <span className="font-mono font-bold text-emerald-700">{log.memberCode}</span>
                         <span>•</span>
-                        <span className="px-1 py-0.2 rounded bg-slate-100 text-slate-600 font-medium">
-                          {log.role === 'admin' ? 'ผู้ดูแลระบบ' : 'สมาชิก'}
+                        <span className={`px-1 py-0.2 rounded font-medium ${
+                          log.role === 'superadmin' 
+                            ? 'bg-rose-100 text-rose-800' 
+                            : log.role === 'admin' 
+                            ? 'bg-amber-100 text-amber-800' 
+                            : log.role === 'finance'
+                            ? 'bg-teal-100 text-teal-800'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {log.role === 'superadmin' ? 'ผู้ดูแลระบบสูงสุด' : log.role === 'admin' ? 'ผู้ดูแลระบบ' : log.role === 'finance' ? 'การเงิน' : 'สมาชิก'}
                         </span>
                       </div>
                       {log.department && (

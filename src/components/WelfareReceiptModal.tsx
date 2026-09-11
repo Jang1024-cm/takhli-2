@@ -41,9 +41,9 @@ export const WelfareReceiptModal: React.FC<WelfareReceiptModalProps> = ({
 
   if (!isOpen) return null;
 
-  const activeAdmin = currentUser?.role === 'admin' 
+  const activeAdmin = (currentUser?.role === 'admin' || currentUser?.role === 'superadmin')
     ? currentUser 
-    : users.find(u => u.role === 'admin');
+    : (users.find(u => u.role === 'admin') || users.find(u => u.role === 'superadmin'));
   
   const currentContrib = myContribs.find(c => c.id === activeContribId) || myContribs[0] || {
     id: 'WF-DEF',

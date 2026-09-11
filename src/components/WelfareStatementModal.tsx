@@ -23,7 +23,7 @@ export const WelfareStatementModal: React.FC<WelfareStatementModalProps> = ({
     getMemberSummary 
   } = useWasteBank();
 
-  const isAdminOrFinance = currentUser?.role === 'admin' || currentUser?.role === 'finance';
+  const isAdminOrFinance = currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || currentUser?.role === 'finance';
 
   const targetCode = isAdminOrFinance
     ? (selectedMemberCode || currentUser?.memberCode || 'MB001')
@@ -46,9 +46,9 @@ export const WelfareStatementModal: React.FC<WelfareStatementModalProps> = ({
   const wasteSummary = getMemberSummary(activeCode);
   const memberContribs = welfareContributions.filter(c => c.memberCode === activeCode);
 
-  const activeAdmin = currentUser?.role === 'admin' 
+  const activeAdmin = (currentUser?.role === 'admin' || currentUser?.role === 'superadmin')
     ? currentUser 
-    : users.find(u => u.role === 'admin');
+    : (users.find(u => u.role === 'admin') || users.find(u => u.role === 'superadmin'));
   const buyerStaffName = activeAdmin?.name || 'นายชาญชัย รักษ์ตาคลี';
 
   const docTitle = `ใบแจ้งยอดสวัสดิการ_${member?.memberCode}_${member?.name || ''}`;

@@ -60,9 +60,9 @@ export const MonthlySalesReceiptModal: React.FC<MonthlySalesReceiptModalProps> =
   const totalMonthlyWeightKg = memberDeposits.reduce((sum, d) => sum + (d.weight ?? d.weightKg ?? 0), 0);
   const totalMonthlySalesAmount = memberDeposits.reduce((sum, d) => sum + (d.totalAmount ?? d.totalPrice ?? 0), 0);
 
-  const activeAdmin = currentUser?.role === 'admin' 
+  const activeAdmin = (currentUser?.role === 'admin' || currentUser?.role === 'superadmin')
     ? currentUser 
-    : users.find(u => u.role === 'admin');
+    : (users.find(u => u.role === 'admin') || users.find(u => u.role === 'superadmin'));
   const buyerOfficerName = activeAdmin?.name || 'นายสมเกียรติ มั่นคง';
 
   const receiptNumber = `REC-M${selectedMonth === 'all' ? 'ALL' : selectedMonth.replace('/', '')}-${member?.memberCode || 'MB001'}`;

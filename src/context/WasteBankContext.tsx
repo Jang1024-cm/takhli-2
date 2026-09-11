@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   User, 
+  UserRole,
   WastePriceItem, 
   DepositRecord, 
   WithdrawalRecord, 
@@ -17,10 +18,12 @@ import {
   BackupModuleKey,
   WasteBankBackupData,
   ActivityLog,
-  ActivityLogAction
+  ActivityLogAction,
+  PurgeDatabaseOptions
 } from '../types';
 import { 
   INITIAL_USERS, 
+  SUPER_ADMIN_USER,
   INITIAL_PRICES, 
   INITIAL_DEPOSITS, 
   INITIAL_WITHDRAWALS, 
@@ -90,7 +93,7 @@ interface WasteBankContextType {
     phone?: string;
     nationalId?: string;
     password?: string;
-    role?: 'member' | 'admin';
+    role?: UserRole;
     avatarUrl?: string;
     welfareEnrolled?: boolean;
     isActive?: boolean;
@@ -99,7 +102,7 @@ interface WasteBankContextType {
   }) => { success: boolean; message: string; user?: User };
   getNextMemberCode: () => string;
   resetUserPassword: (memberCode: string, newPass: string) => boolean;
-  updateUserRole: (memberCode: string, newRole: 'admin' | 'member') => boolean;
+  updateUserRole: (memberCode: string, newRole: UserRole) => { success: boolean; message: string };
   toggleUserActiveStatus: (memberCode: string, isActive: boolean, reason?: string) => { success: boolean; message: string };
   toggleUserWithdrawalPermission: (memberCode: string, canWithdraw: boolean, reason?: string) => { success: boolean; message: string };
   toggleUserWelfareOptOutPermission: (memberCode: string, canOptOut: boolean, reason?: string) => { success: boolean; message: string };
@@ -169,6 +172,13 @@ interface WasteBankContextType {
     mode?: 'overwrite' | 'merge'
   ) => { success: boolean; message: string; summary: Record<string, number> };
 
+  // Database Purge (Super Admin Only)
+  purgeDatabase: (options: PurgeDatabaseOptions) => {
+    success: boolean;
+    message: string;
+    details: string[];
+  };
+
   // Activity & Audit Trail Logs
   activityLogs: ActivityLog[];
   logActivity: (
@@ -214,14 +224,25 @@ const normalizeDeposit = (d: any): DepositRecord => {
 };
 
 export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isUserAdmin = (u?: User | null) => u?.role === 'admin' || u?.role === 'superadmin';
+
   const [users, setUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.USERS);
     const parsed: User[] = saved ? JSON.parse(saved) : INITIAL_USERS;
-    return parsed.map(u => ({
+    const mapped: User[] = parsed.map(u => ({
       ...u,
       isActive: u.isActive !== undefined ? u.isActive : true,
       canWithdraw: u.canWithdraw !== undefined ? u.canWithdraw : true
     }));
+    // Ensure SUPER01 is always available even if old localStorage cached users exist
+    if (!mapped.some(u => u.role === 'superadmin' || u.memberCode === 'SUPER01')) {
+      mapped.unshift({
+        ...SUPER_ADMIN_USER,
+        isActive: true,
+        canWithdraw: true
+      });
+    }
+    return mapped;
   });
 
   const [prices, setPrices] = useState<WastePriceItem[]>(() => {
@@ -406,7 +427,7 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Department Management (Admin Only)
   const addDepartment = (name: string) => {
-    if (currentUser?.role !== 'admin') {
+    if (!isUserAdmin(currentUser)) {
       return { success: false, message: 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถจัดการกอง/ส่วนงานได้' };
     }
     const trimmed = name.trim();
@@ -419,7 +440,7 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const editDepartment = (oldName: string, newName: string) => {
-    if (currentUser?.role !== 'admin') {
+    if (!isUserAdmin(currentUser)) {
       return { success: false, message: 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถจัดการกอง/ส่วนงานได้' };
     }
     const trimmed = newName.trim();
@@ -431,7 +452,7 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteDepartment = (name: string) => {
-    if (currentUser?.role !== 'admin') {
+    if (!isUserAdmin(currentUser)) {
       return { success: false, message: 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถจัดการกอง/ส่วนงานได้' };
     }
     if (departments.length <= 1) {
@@ -443,26 +464,26 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Organization Config & Logo Management (Admin Only)
   const updateOrgConfig = (newConfig: Partial<OrgConfig>) => {
-    if (currentUser?.role !== 'admin') return false;
+    if (!isUserAdmin(currentUser)) return false;
     setOrgConfig(prev => ({ ...prev, ...newConfig }));
     return true;
   };
 
   const updateOrgLogo = (logoUrl: string) => {
-    if (currentUser?.role !== 'admin') return false;
+    if (!isUserAdmin(currentUser)) return false;
     setOrgConfig(prev => ({ ...prev, logoUrl }));
     return true;
   };
 
   const resetOrgLogo = () => {
-    if (currentUser?.role !== 'admin') return false;
+    if (!isUserAdmin(currentUser)) return false;
     setOrgConfig(prev => ({ ...prev, logoUrl: '' }));
     return true;
   };
 
   // Alert Settings (Telegram & Email) - Admin Only
   const updateAlertConfig = (newConfig: Partial<AlertConfig>) => {
-    if (currentUser?.role !== 'admin') {
+    if (!isUserAdmin(currentUser)) {
       return { success: false, message: 'เฉพาะผู้ดูแลระบบเท่านั้นที่มีสิทธิ์แก้ไขการตั้งค่าแจ้งเตือนอัตโนมัติ' };
     }
     setAlertConfig(prev => ({ ...prev, ...newConfig }));
@@ -498,8 +519,10 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // 1. Direct role or shortcut aliases
     let found: User | undefined;
-    if (['admin', 'แอดมิน', 'ผู้ดูแลระบบ', 'adm', 'administrator', 'root'].includes(cleanId)) {
-      found = users.find(u => u.role === 'admin') || users[0];
+    if (['superadmin', 'super', 'super01', 'ซุปเปอร์แอดมิน', 'ผู้ดูแลระบบสูงสุด', 'root'].includes(cleanId)) {
+      found = users.find(u => u.role === 'superadmin' || u.memberCode === 'SUPER01') || SUPER_ADMIN_USER;
+    } else if (['admin', 'แอดมิน', 'ผู้ดูแลระบบ', 'adm', 'administrator'].includes(cleanId)) {
+      found = users.find(u => u.role === 'admin') || users.find(u => u.role === 'superadmin') || users[0];
     } else if (['finance', 'fin', 'การเงิน', 'กองคลัง', 'คลัง', 'สุดารัตน์'].includes(cleanId)) {
       found = users.find(u => u.memberCode === 'FIN01' || u.role === 'finance') || users.find(u => u.role === 'admin');
     } else if (['member', 'สมาชิก', 'สมชาย', 'somchai', 'user', 'ผู้ใช้', 'mb001'].includes(cleanId)) {
@@ -519,8 +542,8 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     // Verify password for all roles
-    const expectedPassword = found.password || 'password123';
-    if (pass !== expectedPassword && pass !== 'admin123' && pass !== 'password123') {
+    const expectedPassword = found.password || (found.role === 'superadmin' ? 'superadmin123' : 'password123');
+    if (pass !== expectedPassword && pass !== 'superadmin123' && pass !== 'admin123' && pass !== 'password123') {
       return { success: false, message: 'รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง' };
     }
 
@@ -541,9 +564,14 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     setCurrentUser(found);
+    const loginTitle = found.role === 'superadmin' 
+      ? 'เข้าสู่ระบบ (ผู้ดูแลระบบสูงสุด Super Admin)' 
+      : found.role === 'admin' 
+      ? 'เข้าสู่ระบบ (ผู้ดูแลระบบ)' 
+      : 'เข้าสู่ระบบ';
     logActivity(
       'login',
-      found.role === 'admin' ? 'เข้าสู่ระบบ (ผู้ดูแลระบบ)' : 'เข้าสู่ระบบ',
+      loginTitle,
       `เข้าสู่ระบบสำเร็จผ่านการยืนยันตัวตน (${found.memberCode})`,
       found,
       'success'
@@ -559,7 +587,7 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const switchUser = (user: User) => {
-    if (user.isActive === false && currentUser?.role !== 'admin') {
+    if (user.isActive === false && !isUserAdmin(currentUser)) {
       alert(`บัญชี ${user.name} (${user.memberCode}) ถูกระงับสิทธิ์การใช้งานชั่วคราว`);
       return;
     }
@@ -587,15 +615,15 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     phone?: string;
     nationalId?: string;
     password?: string;
-    role?: 'member' | 'admin';
+    role?: UserRole;
     avatarUrl?: string;
     welfareEnrolled?: boolean;
     isActive?: boolean;
     canWithdraw?: boolean;
     statusReason?: string;
   }) => {
-    if (currentUser?.role !== 'admin') {
-      return { success: false, message: 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถเพิ่มสมาชิกได้' };
+    if (!isUserAdmin(currentUser)) {
+      return { success: false, message: 'เฉพาะผู้ดูแลระบบ (Admin / Super Admin) เท่านั้นที่สามารถเพิ่มสมาชิกได้' };
     }
 
     if (!userData.name || !userData.name.trim()) {
@@ -711,18 +739,58 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return true;
   };
 
-  const updateUserRole = (memberCode: string, newRole: 'admin' | 'member') => {
+  const updateUserRole = (memberCode: string, newRole: UserRole): { success: boolean; message: string } => {
+    if (!isUserAdmin(currentUser)) {
+      return { success: false, message: 'เฉพาะผู้ดูแลระบบ (Admin / Super Admin) เท่านั้นที่สามารถปรับเปลี่ยนระดับสิทธิ์ได้' };
+    }
+
+    const targetUser = users.find(u => u.memberCode === memberCode);
+    if (!targetUser) {
+      return { success: false, message: `ไม่พบผู้ใช้งาน ${memberCode}` };
+    }
+
+    // Protection rule 1: Only superadmin can assign superadmin role
+    if (newRole === 'superadmin' && currentUser?.role !== 'superadmin') {
+      return { success: false, message: 'การแต่งตั้งสิทธิ์ผู้ดูแลระบบสูงสุด (Super Admin) ต้องดำเนินการโดย Super Admin เท่านั้น' };
+    }
+
+    // Protection rule 2: Only superadmin can modify an existing superadmin
+    if (targetUser.role === 'superadmin' && currentUser?.role !== 'superadmin') {
+      return { success: false, message: 'เฉพาะผู้ดูแลระบบสูงสุด (Super Admin) เท่านั้นที่สามารถปรับเปลี่ยนสิทธิ์ของ Super Admin ได้' };
+    }
+
+    // Protection rule 3: Cannot demote the primary superadmin account SUPER01
+    if (targetUser.memberCode === 'SUPER01' && newRole !== 'superadmin') {
+      return { success: false, message: 'ไม่สามารถลดระดับสิทธิ์ของบัญชีผู้ดูแลระบบหลัก (SUPER01) ได้' };
+    }
+
     setUsers(prev => prev.map(u => u.memberCode === memberCode ? { ...u, role: newRole } : u));
     if (currentUser?.memberCode === memberCode) {
       setCurrentUser(prev => prev ? { ...prev, role: newRole } : null);
     }
-    return true;
+
+    const roleNameMap: Record<UserRole, string> = {
+      superadmin: 'ผู้ดูแลระบบสูงสุด (Super Admin)',
+      admin: 'ผู้ดูแลระบบ (Admin)',
+      finance: 'เจ้าหน้าที่การเงิน (Finance)',
+      member: 'สมาชิกทั่วไป (Member)'
+    };
+
+    logActivity(
+      'update_user',
+      'ปรับระดับสิทธิ์ผู้ใช้งาน',
+      `เปลี่ยนระดับสิทธิ์ของ ${targetUser.name} (${memberCode}) เป็น ${roleNameMap[newRole]} โดย ${currentUser?.name}`,
+      currentUser,
+      'success'
+    );
+
+    return { success: true, message: `ปรับระดับสิทธิ์ของ ${targetUser.name} เป็น ${roleNameMap[newRole]} เรียบร้อยแล้ว` };
   };
 
   // Toggle user active status (Admin Only)
   const toggleUserActiveStatus = (memberCode: string, isActive: boolean, reason?: string) => {
-    if (currentUser?.role !== 'admin') {
-      return { success: false, message: 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถปรับเปลี่ยนสิทธิ์การใช้งานได้' };
+    if (!isUserAdmin(currentUser)) {
+      return { success: false, message: 'เฉพาะผู้ดูแลระบบ (Admin / Super Admin) เท่านั้นที่สามารถปรับเปลี่ยนสิทธิ์การใช้งานได้' };
     }
 
     const targetUser = users.find(u => u.memberCode === memberCode);
@@ -731,7 +799,7 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     // Protect current logged-in admin from locking themselves out
-    if (currentUser.memberCode === memberCode && !isActive) {
+    if (currentUser?.memberCode === memberCode && !isActive) {
       return { success: false, message: 'ไม่สามารถระงับสิทธิ์บัญชีผู้ดูแลระบบที่กำลังใช้งานอยู่ได้' };
     }
 
@@ -759,8 +827,8 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Toggle user withdrawal permission (Admin Only)
   const toggleUserWithdrawalPermission = (memberCode: string, canWithdraw: boolean, reason?: string) => {
-    if (currentUser?.role !== 'admin') {
-      return { success: false, message: 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถปรับเปลี่ยนสิทธิ์การขอถอนเงินได้' };
+    if (!isUserAdmin(currentUser)) {
+      return { success: false, message: 'เฉพาะผู้ดูแลระบบ (Admin / Super Admin) เท่านั้นที่สามารถปรับเปลี่ยนสิทธิ์การขอถอนเงินได้' };
     }
 
     const targetUser = users.find(u => u.memberCode === memberCode);
@@ -828,8 +896,8 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Toggle user welfare opt-out permission (Admin Only)
   const toggleUserWelfareOptOutPermission = (memberCode: string, canOptOut: boolean, reason?: string) => {
-    if (currentUser?.role !== 'admin') {
-      return { success: false, message: 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถอนุมัติสิทธิ์การลาออกได้' };
+    if (!isUserAdmin(currentUser)) {
+      return { success: false, message: 'เฉพาะผู้ดูแลระบบ (Admin / Super Admin) เท่านั้นที่สามารถอนุมัติสิทธิ์การลาออกได้' };
     }
 
     const targetUser = users.find(u => u.memberCode === memberCode);
@@ -865,7 +933,7 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Profile update (Admin or self)
   const updateUserProfile = (memberCode: string, data: Partial<User>) => {
-    if (currentUser?.role !== 'admin' && currentUser?.memberCode !== memberCode) {
+    if (!isUserAdmin(currentUser) && currentUser?.memberCode !== memberCode) {
       return { success: false, message: 'ไม่มีสิทธิ์แก้ไขข้อมูลสมาชิกท่านอื่น' };
     }
 
@@ -874,10 +942,10 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return {
           ...u,
           ...data,
-          role: currentUser?.role === 'admin' && data.role ? data.role : u.role,
-          isActive: currentUser?.role === 'admin' && data.isActive !== undefined ? data.isActive : (u.isActive ?? true),
-          canWithdraw: currentUser?.role === 'admin' && data.canWithdraw !== undefined ? data.canWithdraw : (u.canWithdraw ?? true),
-          statusReason: currentUser?.role === 'admin' && data.statusReason !== undefined ? data.statusReason : u.statusReason
+          role: isUserAdmin(currentUser) && data.role ? data.role : u.role,
+          isActive: isUserAdmin(currentUser) && data.isActive !== undefined ? data.isActive : (u.isActive ?? true),
+          canWithdraw: isUserAdmin(currentUser) && data.canWithdraw !== undefined ? data.canWithdraw : (u.canWithdraw ?? true),
+          statusReason: isUserAdmin(currentUser) && data.statusReason !== undefined ? data.statusReason : u.statusReason
         };
       }
       return u;
@@ -891,7 +959,7 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteUserProfileImage = (memberCode: string) => {
-    if (currentUser?.role !== 'admin' && currentUser?.memberCode !== memberCode) {
+    if (!isUserAdmin(currentUser) && currentUser?.memberCode !== memberCode) {
       return { success: false, message: 'ไม่มีสิทธิ์ลบรูปโปรไฟล์สมาชิกท่านอื่น' };
     }
 
@@ -918,13 +986,13 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Price CRUD actions (Admin Only)
   const updatePriceItem = (code: string, updated: Partial<WastePriceItem>) => {
-    if (currentUser?.role !== 'admin') return false;
+    if (!isUserAdmin(currentUser)) return false;
     setPrices(prev => prev.map(p => p.code === code ? { ...p, ...updated } : p));
     return true;
   };
 
   const deletePriceItem = (code: string) => {
-    if (currentUser?.role !== 'admin') return false;
+    if (!isUserAdmin(currentUser)) return false;
     setPrices(prev => prev.filter(p => p.code !== code));
     return true;
   };
@@ -1015,7 +1083,7 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       'success'
     );
 
-    if (alertConfig.promptBeforeSendOnTransaction && currentUser?.role === 'admin') {
+    if (alertConfig.promptBeforeSendOnTransaction && isUserAdmin(currentUser)) {
       const summary = getMemberSummary(memberCode);
       const updatedBalance = Math.round((summary.currentBalance + totalAmount) * 100) / 100;
       setPendingTransactionAlert({
@@ -1144,7 +1212,7 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       );
     }
 
-    if (target && alertConfig.promptBeforeSendOnTransaction && currentUser?.role === 'admin') {
+    if (target && alertConfig.promptBeforeSendOnTransaction && isUserAdmin(currentUser)) {
       const member = users.find(u => u.memberCode === target.memberCode);
       if (member) {
         const summary = getMemberSummary(member.memberCode);
@@ -1228,7 +1296,7 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!targetUser) return false;
 
     // Rule: Member cannot unenroll by themselves unless admin has granted canOptOutWelfare permission!
-    if (!enrolled && currentUser?.role !== 'admin' && targetUser.canOptOutWelfare !== true) {
+    if (!enrolled && !isUserAdmin(currentUser) && targetUser.canOptOutWelfare !== true) {
       return false;
     }
 
@@ -1862,7 +1930,11 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     localStorage.removeItem(STORAGE_KEYS.DEPTS);
     localStorage.removeItem(STORAGE_KEYS.ORG_CONFIG);
     localStorage.removeItem(STORAGE_KEYS.ALERT_CONFIG);
-    setUsers(INITIAL_USERS);
+    const defaultUsers = [...INITIAL_USERS];
+    if (!defaultUsers.some(u => u.role === 'superadmin' || u.memberCode === 'SUPER01')) {
+      defaultUsers.unshift(SUPER_ADMIN_USER);
+    }
+    setUsers(defaultUsers);
     setPrices(INITIAL_PRICES);
     setDeposits(INITIAL_DEPOSITS);
     setWithdrawals(INITIAL_WITHDRAWALS);
@@ -1873,7 +1945,96 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setWelfareConfig(INITIAL_WELFARE_CONFIG);
     setWelfareContributions(INITIAL_WELFARE_CONTRIBUTIONS);
     setWelfareExpenses(INITIAL_WELFARE_EXPENSES);
-    setCurrentUser(INITIAL_USERS[1]);
+    setCurrentUser(defaultUsers[0]);
+  };
+
+  // Granular database purge (Super Admin only)
+  const purgeDatabase = (options: PurgeDatabaseOptions): {
+    success: boolean;
+    message: string;
+    details: string[];
+  } => {
+    if (currentUser?.role !== 'superadmin') {
+      return {
+        success: false,
+        message: 'ปฏิเสธการเข้าถึง: สิทธิ์การล้างฐานข้อมูลสงวนไว้เฉพาะผู้ดูแลระบบสูงสุด (Super Admin) เท่านั้น',
+        details: []
+      };
+    }
+
+    const details: string[] = [];
+
+    // 1. Deposits
+    if (options.deleteDeposits) {
+      const count = deposits.length;
+      setDeposits([]);
+      localStorage.removeItem(STORAGE_KEYS.DEPOSITS);
+      details.push(`ล้างประวัติการนำฝากขยะ (${count} รายการ)`);
+    }
+
+    // 2. Withdrawals
+    if (options.deleteWithdrawals) {
+      const count = withdrawals.length;
+      setWithdrawals([]);
+      localStorage.removeItem(STORAGE_KEYS.WITHDRAWALS);
+      details.push(`ล้างประวัติการขอถอนเงินและอนุมัติ (${count} รายการ)`);
+    }
+
+    // 3. Welfare records
+    if (options.deleteWelfareRecords) {
+      const cCount = welfareContributions.length;
+      const eCount = welfareExpenses.length;
+      setWelfareContributions([]);
+      setWelfareExpenses([]);
+      localStorage.removeItem(STORAGE_KEYS.WELFARE_CONTRIBUTIONS);
+      localStorage.removeItem(STORAGE_KEYS.WELFARE_EXPENSES);
+      details.push(`ล้างประวัติเงินสมทบ (${cCount} รายการ) และเบิกจ่ายสวัสดิการ (${eCount} รายการ)`);
+    }
+
+    // 4. Staff members (Preserve Super Admin & Primary Admin)
+    if (options.deleteMembers) {
+      const beforeCount = users.length;
+      const preserved = users.filter(u => u.role === 'superadmin' || u.memberCode === 'SUPER01' || u.memberCode === 'ADM01');
+      if (!preserved.some(u => u.role === 'superadmin' || u.memberCode === 'SUPER01')) {
+        preserved.unshift(SUPER_ADMIN_USER);
+      }
+      setUsers(preserved);
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(preserved));
+      if (!preserved.some(u => u.memberCode === currentUser?.memberCode)) {
+        setCurrentUser(preserved[0]);
+      }
+      details.push(`ลบข้อมูลสมาชิกพนักงานทั่วไป (${beforeCount - preserved.length} คน) โดยเก็บบัญชีผู้ดูแลระบบสูงสุด (${SUPER_ADMIN_USER.memberCode}) ไว้ใช้งาน`);
+    }
+
+    // 5. Activity logs
+    if (options.deleteActivityLogs) {
+      const count = activityLogs.length;
+      setActivityLogs([]);
+      localStorage.removeItem(STORAGE_KEYS.ACTIVITY_LOGS);
+      details.push(`ล้างประวัติบันทึกการทำงานของระบบ (${count} รายการ)`);
+    }
+
+    // 6. Reset prices
+    if (options.resetPricesToDefault) {
+      setPrices(INITIAL_PRICES);
+      localStorage.removeItem(STORAGE_KEYS.PRICES);
+      details.push(`รีเซ็ตตารางราคารับซื้อขยะกลับเป็นค่าเริ่มต้นมาตรฐาน (${INITIAL_PRICES.length} ชนิด)`);
+    }
+
+    // Audit log
+    logActivity(
+      'purge_database',
+      'ล้างข้อมูลระบบ (Super Admin Purge)',
+      `ผู้ดูแลระบบสูงสุด (${currentUser.name}) ทำการล้างข้อมูล: ${details.join(', ')}`,
+      currentUser,
+      'warning'
+    );
+
+    return {
+      success: true,
+      message: 'ดำเนินการล้างข้อมูลที่เลือกในฐานข้อมูลเรียบร้อยแล้ว',
+      details
+    };
   };
 
   const exportBackupData = (selectedModules?: BackupModuleKey[]): WasteBankBackupData => {
@@ -2154,6 +2315,7 @@ export const WasteBankProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         syncWithGoogleSheet,
         importPricesFromCSV,
         resetToDefaultData,
+        purgeDatabase,
         exportBackupData,
         importBackupData,
         activityLogs,

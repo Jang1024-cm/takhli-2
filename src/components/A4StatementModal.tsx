@@ -16,7 +16,7 @@ export const A4StatementModal: React.FC<A4StatementModalProps> = ({
 }) => {
   const { currentUser, users, deposits, withdrawals, getMemberSummary } = useWasteBank();
 
-  const isAdminOrFinance = currentUser?.role === 'admin' || currentUser?.role === 'finance';
+  const isAdminOrFinance = currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || currentUser?.role === 'finance';
 
   // Rule: Non-admin users can ONLY see their own statement! Admin can pick any member or selectedMemberCode
   const targetCode = isAdminOrFinance
@@ -42,9 +42,9 @@ export const A4StatementModal: React.FC<A4StatementModalProps> = ({
   const memberDeposits = deposits.filter(d => d.memberCode === activeCode);
   const memberWithdrawals = withdrawals.filter(w => w.memberCode === activeCode && w.status === 'approved');
 
-  const activeAdmin = currentUser?.role === 'admin' 
+  const activeAdmin = (currentUser?.role === 'admin' || currentUser?.role === 'superadmin')
     ? currentUser 
-    : users.find(u => u.role === 'admin');
+    : (users.find(u => u.role === 'admin') || users.find(u => u.role === 'superadmin'));
   const buyerStaffName = activeAdmin?.name || 'นายชาญชัย รักษ์ตาคลี';
 
   const docTitle = `ใบแจ้งยอดธนาคารขยะ_${member?.memberCode}_${member?.name || ''}`;
