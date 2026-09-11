@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #1f2937;
+    background-color: #f8fafc;
+  }
+}
+
+@media print {
+  html, body {
+    background: white !important;
+    color: black !important;
+    font-family: 'Sarabun', 'Prompt', serif !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  /* Remove modal constraints and dark overlay in print */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+  .max-h-\[95vh\], .overflow-y-auto {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  #a4-printable-document, #welfare-printable-document, #executive-summary-a4-printable, #monthly-receipt-printable-document, #welfare-receipt-printable-document, #weight-slip-printable-document {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    text-align: left !important;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+}

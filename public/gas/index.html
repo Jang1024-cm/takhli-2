@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ระบบธนาคารขยะดิจิทัล องค์การบริหารส่วนตำบลตาคลี จ.นครสวรรค์</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Sarabun', sans-serif; }
+    h1, h2, h3, .font-prompt { font-family: 'Prompt', sans-serif; }
+    .hidden { display: none !important; }
+    @media print {
+      body * { visibility: hidden; }
+      .print-area, .print-area * { visibility: visible; }
+      .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
+  <!-- ==================== 0. DEDICATED LOGIN SCREEN ==================== -->
+  <div id="loginScreenView" style="display: flex !important;" class="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 p-4 sm:p-6 text-slate-800">
+    <div class="max-w-xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-emerald-500/30 flex flex-col">
+      <!-- Header Banner -->
+      <div class="bg-gradient-to-r from-emerald-800 to-teal-800 text-white p-6 sm:p-8 text-center space-y-2">
+        <div class="w-16 h-16 rounded-2xl bg-white/10 text-white border border-white/20 flex items-center justify-center text-3xl mx-auto shadow-inner">
+          ♻️
+        </div>
+        <h2 class="text-xl sm:text-2xl font-bold font-prompt">ธนาคารขยะดิจิทัล อบต.ตาคลี</h2>
+        <p class="text-xs sm:text-sm text-emerald-100">
+          องค์การบริหารส่วนตำบลตาคลี อ.ตาคลี จ.นครสวรรค์
+        </p>
+        <div class="inline-flex items-center space-x-1.5 bg-emerald-950/40 text-emerald-200 text-[11px] px-3 py-1 rounded-full font-medium mt-1">
+          <span>พนักงาน 150 คน • 5 กอง/สำนัก • คืนขยะสู่เงินออม & สวัสดิการ</span>
+        </div>
+      </div>
+
+      <div class="p-6 sm:p-8 space-y-6">
+        <!-- Manual Login Form -->
+        <form id="loginForm" action="javascript:void(0);" onsubmit="handleLoginSubmit(event); return false;" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">รหัสสมาชิก / ชื่อผู้ใช้งาน / เลขบัตร ปชช. / อีเมล</label>
+            <input type="text" id="loginScreenIdentifier" onkeydown="if(event.key==='Enter'){event.preventDefault();handleLoginSubmit(event);}" placeholder="เช่น รหัสสมาชิก หรือเลขบัตร ปชช." class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
+            <input type="password" id="loginScreenPassword" onkeydown="if(event.key==='Enter'){event.preventDefault();handleLoginSubmit(event);}" placeholder="กรอกรหัสผ่านของคุณ" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+
+          <div id="loginScreenErrorMsg" class="text-xs text-rose-600 font-bold hidden p-3 bg-rose-50 border border-rose-200 rounded-xl"></div>
+
+          <button id="btnLoginSubmit" type="button" onclick="handleLoginSubmit(event)" class="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-md transition cursor-pointer flex items-center justify-center space-x-2">
+            <span>เข้าสู่ระบบธนาคารขยะ</span>
+            <span>➔</span>
+          </button>
+        </form>
+
+        <!-- Register link -->
+        <div class="text-center pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+          <span>ยังไม่มีรหัสสมาชิก หรือพนักงานใหม่?</span>
+          <button type="button" onclick="openRegisterModal()" class="text-emerald-700 hover:text-emerald-900 font-bold hover:underline cursor-pointer">
+            ➕ ลงทะเบียนสมาชิกใหม่
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer note -->
+      <div class="bg-slate-50 p-3 text-center border-t border-slate-100 text-[11px] text-slate-400">
+        🟢 ฐานข้อมูล Google Sheets เชื่อมต่ออัตโนมัติ (ID: 17GTwer_lim6W7z3DO-W4I5u1waDAVZxxwCGiJGu0GDs)
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== 1. MAIN APP VIEW ==================== -->
+  <div id="appMainView" style="display: none !important;" class="min-h-screen flex flex-col bg-slate-100 hidden">
+<header class="bg-emerald-800 text-white shadow-md sticky top-0 z-30 no-print">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-white text-emerald-800 flex items-center justify-center font-bold text-2xl shadow-sm">
+          ♻️
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="font-bold text-base sm:text-lg leading-tight">ธนาคารขยะดิจิทัล อบต.ตาคลี</h1>
+            <span id="roleHeaderBadge" class="bg-emerald-600 text-[10px] px-2 py-0.5 rounded-full font-semibold text-emerald-100">พนักงาน</span>
+          </div>
+          <p class="text-xs text-emerald-200">อบต.ตาคลี จ.นครสวรรค์ • กองสาธารณสุขและสิ่งแวดล้อม</p>
+        </div>
+      </div>
+
+      <!-- User Info & Account Actions -->
+      <div class="flex items-center space-x-2">
+        <div id="headerUserInfo" class="flex items-center space-x-2 bg-emerald-900/80 px-3 py-1.5 rounded-xl border border-emerald-700/60">
+          <div class="w-7 h-7 rounded-full bg-emerald-700 text-white font-bold flex items-center justify-center text-xs" id="userAvatarText">MB</div>
+          <div class="text-left leading-tight hidden sm:block">
+            <div class="text-xs font-bold text-white truncate max-w-[130px]" id="userDisplayName">กำลังเข้าสู่ระบบ...</div>
+            <div class="text-[10px] text-emerald-200 truncate max-w-[130px]" id="userDisplayDept">อบต.ตาคลี</div>
+          </div>
+        </div>
+
+        <button onclick="openLoginModal()" class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 rounded-xl text-xs font-semibold flex items-center space-x-1" title="สลับบัญชี / เข้าสู่ระบบ">
+          <span>🔄</span>
+          <span class="hidden sm:inline">สลับบัญชี</span>
+        </button>
+
+        <button onclick="handleLogout()" class="px-2.5 py-1.5 bg-rose-700/80 hover:bg-rose-700 rounded-xl text-xs font-semibold flex items-center space-x-1" title="ออกจากระบบ">
+          <span>🚪</span>
+          <span class="hidden sm:inline">ออก</span>
+        </button>
+
+        <button onclick="reloadAllData()" class="p-1.5 bg-emerald-700 hover:bg-emerald-600 rounded-lg text-xs" title="รีเฟรชข้อมูลชีต">
+          🔄
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto border-t border-emerald-700/60 text-xs font-semibold">
+      <button onclick="switchTab('dashboard')" id="btnTabDashboard" class="py-2.5 px-3.5 border-b-2 border-white text-white whitespace-nowrap">
+        📊 สรุปภาพรวม & ESG
+      </button>
+      <button onclick="switchTab('deposit')" id="btnTabDeposit" class="py-2.5 px-3.5 border-b-2 border-transparent text-emerald-200 hover:text-white whitespace-nowrap">
+        ⚖️ จุดรับชั่งขยะ & ออกใบเสร็จ
+      </button>
+      <button onclick="switchTab('statement')" id="btnTabStatement" class="py-2.5 px-3.5 border-b-2 border-transparent text-emerald-200 hover:text-white whitespace-nowrap">
+        📖 สมุดบัญชี A4
+      </button>
+      <button onclick="switchTab('withdraw')" id="btnTabWithdraw" class="py-2.5 px-3.5 border-b-2 border-transparent text-emerald-200 hover:text-white whitespace-nowrap">
+        💸 ขอถอนเงินสด
+      </button>
+      <button onclick="switchTab('prices')" id="btnTabPrices" class="py-2.5 px-3.5 border-b-2 border-transparent text-emerald-200 hover:text-white whitespace-nowrap">
+        🏷️ ราคารับซื้อขยะ
+      </button>
+      <!-- TAB ระบบแอดมิน -->
+      <button onclick="switchTab('admin')" id="btnTabAdmin" class="py-2.5 px-3.5 border-b-2 border-transparent text-amber-300 hover:text-white whitespace-nowrap font-bold flex items-center space-x-1">
+        <span>👑</span>
+        <span>ระบบจัดการแอดมิน</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== 2. MAIN APPLICATION CONTENT ==================== -->
+  <main class="max-w-7xl mx-auto px-4 py-5 flex-1 w-full space-y-5 no-print">
+
+    <!-- TAB: DASHBOARD -->
+    <section id="tabContentDashboard" style="display: block !important;" class="space-y-5">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div class="bg-white p-4 rounded-2xl shadow-xs border border-slate-200">
+          <div class="text-[11px] font-bold uppercase text-slate-500">น้ำหนักขยะสะสมรวม</div>
+          <div class="text-2xl font-bold text-emerald-700 mt-1" id="statTotalWeight">0.0 <span class="text-xs font-normal text-slate-500">กก.</span></div>
+          <div class="text-[11px] text-emerald-600 mt-0.5">4 หมวดขยะรีไซเคิล</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-xs border border-slate-200">
+          <div class="text-[11px] font-bold uppercase text-slate-500">มูลค่าเงินหมุนเวียนรวม</div>
+          <div class="text-2xl font-bold text-teal-700 mt-1" id="statTotalMoney">0.00 <span class="text-xs font-normal text-slate-500">บาท</span></div>
+          <div class="text-[11px] text-teal-600 mt-0.5">จ่ายเข้าบัญชีพนักงาน</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-xs border border-slate-200">
+          <div class="text-[11px] font-bold uppercase text-slate-500">ลดก๊าซเรือนกระจก (CO2e)</div>
+          <div class="text-2xl font-bold text-amber-600 mt-1" id="statTotalCO2">0.0 <span class="text-xs font-normal text-slate-500">kgCO2e</span></div>
+          <div class="text-[11px] text-amber-600 mt-0.5">คำนวณตามมาตรฐาน อบก.</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-xs border border-slate-200">
+          <div class="text-[11px] font-bold uppercase text-slate-500">เทียบเท่าการรักษาต้นไม้</div>
+          <div class="text-2xl font-bold text-emerald-800 mt-1" id="statTotalTrees">0 <span class="text-xs font-normal text-slate-500">ต้น</span></div>
+          <div class="text-[11px] text-emerald-700 mt-0.5">พนักงาน 150 คนร่วมมือ</div>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-3">
+        <h3 class="font-bold text-sm text-slate-800">🏛️ ปริมาณขยะและยอดเงินสะสม แยกตาม 5 กอง/สำนัก อบต.ตาคลี</h3>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3" id="deptStatsContainer"></div>
+      </div>
+    </section>
+
+    <!-- TAB: DEPOSIT STATION -->
+    <section id="tabContentDeposit" style="display: none !important;" class="space-y-4 hidden">
+      <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4">
+        <div class="border-b pb-3 flex justify-between items-center">
+          <div>
+            <h2 class="font-bold text-base text-slate-800">จุดรับชั่งขยะรีไซเคิล & ออกใบเสร็จความร้อน 80mm</h2>
+            <p class="text-xs text-slate-500">ชั่งน้ำหนัก คำนวณเงินสดเข้าบัญชีและบันทึกลงชีตทันที</p>
+          </div>
+          <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold">จุดบริการชั่งขยะ</span>
+        </div>
+
+        <form id="formDeposit" onsubmit="submitDeposit(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">เลือกสมาชิกพนักงาน *</label>
+              <select id="depMemberSelect" required class="w-full text-sm px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">ชนิดขยะรีไซเคิล (4 หมวด) *</label>
+              <select id="depWasteSelect" onchange="calculateDepositTotal()" required class="w-full text-sm px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50"></select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">น้ำหนักชั่งได้ (กิโลกรัม) *</label>
+              <input type="number" id="depWeightInput" step="0.1" min="0.1" placeholder="0.0" oninput="calculateDepositTotal()" required class="w-full text-base font-bold text-emerald-800 px-3 py-2 border border-slate-300 rounded-xl">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">ราคารับซื้อ (บาท/กก.)</label>
+              <input type="text" id="depUnitPriceDisplay" readonly class="w-full text-sm font-semibold text-slate-600 bg-slate-100 px-3 py-2 border border-slate-300 rounded-xl">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-emerald-800 mb-1">รวมเป็นเงิน (บาท)</label>
+              <input type="text" id="depTotalDisplay" readonly class="w-full text-lg font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 border border-emerald-300 rounded-xl">
+            </div>
+          </div>
+          <button type="submit" id="btnDepositSubmit" class="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-xs transition">
+            💾 บันทึกรับฝากขยะลง Google Sheets
+          </button>
+        </form>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-3">
+        <h3 class="font-bold text-xs uppercase tracking-wider text-slate-500">รายการรับฝากขยะล่าสุด</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-700">
+            <thead class="bg-slate-50 text-slate-500 border-b">
+              <tr>
+                <th class="p-2.5">เลขที่ใบเสร็จ</th>
+                <th class="p-2.5">วันที่</th>
+                <th class="p-2.5">สมาชิก</th>
+                <th class="p-2.5">ชนิดขยะ</th>
+                <th class="p-2.5">น้ำหนัก (กก.)</th>
+                <th class="p-2.5">รวมเงิน (บาท)</th>
+                <th class="p-2.5 text-center">พิมพ์สลิป</th>
+              </tr>
+            </thead>
+            <tbody id="depositTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: STATEMENT A4 -->
+    <section id="tabContentStatement" style="display: none !important;" class="space-y-4 hidden">
+      <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-2xl shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <div class="text-xs text-emerald-200 font-mono" id="stmtUserCode">MB001</div>
+          <div class="text-2xl font-bold font-prompt" id="stmtUserName">นายสมชาย ใจดี</div>
+          <div class="text-xs text-emerald-100" id="stmtUserDept">สังกัด: สำนักปลัด อบต.ตาคลี</div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <div class="bg-white/10 backdrop-blur px-5 py-3 rounded-xl border border-white/20 text-right">
+            <div class="text-[11px] text-emerald-200">ยอดเงินคงเหลือในบัญชี</div>
+            <div class="text-2xl font-black text-amber-300" id="stmtUserBalance">0.00 บาท</div>
+          </div>
+          <button onclick="openPassbookPrintModal()" class="px-4 py-3 bg-white text-emerald-900 hover:bg-emerald-50 rounded-xl font-bold text-xs shadow-sm transition">
+            🖨️ พิมพ์สมุดบัญชี A4
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-3">
+        <h3 class="font-bold text-sm text-slate-800">📜 รายการเดินบัญชีเงินฝากขยะ (Statement)</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-700">
+            <thead class="bg-slate-50 text-slate-500 border-b">
+              <tr>
+                <th class="p-2.5">วันเวลา</th>
+                <th class="p-2.5">รายการ / ชนิดขยะ</th>
+                <th class="p-2.5">น้ำหนัก (กก.)</th>
+                <th class="p-2.5">ราคา/กก.</th>
+                <th class="p-2.5 text-right">จำนวนเงิน (บาท)</th>
+                <th class="p-2.5 text-right">ยอดคงเหลือ</th>
+              </tr>
+            </thead>
+            <tbody id="stmtTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: WITHDRAWAL -->
+    <section id="tabContentWithdraw" style="display: none !important;" class="space-y-4 hidden">
+      <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 max-w-xl mx-auto space-y-4">
+        <div class="border-b pb-3">
+          <h3 class="font-bold text-base text-slate-800">💸 ส่งคำขอถอนเงินสด (กองคลัง อบต.ตาคลี)</h3>
+          <p class="text-xs text-slate-500">กฎระเบียบ: บัญชีต้องคงเหลือไม่น้อยกว่า 50 บาท (ถอนได้ไม่เกินยอดคงเหลือสุทธิ)</p>
+        </div>
+        <form onsubmit="submitWithdrawal(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">ยอดเงินคงเหลือปัจจุบันของคุณ</label>
+            <input type="text" id="wdrCurrentBalanceDisplay" readonly class="w-full text-lg font-bold text-emerald-800 bg-slate-50 px-3 py-2 border rounded-xl" value="0.00 บาท">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">จำนวนเงินที่ต้องการถอน (บาท) *</label>
+            <input type="number" id="wdrAmountInput" min="10" step="1" required placeholder="ระบุจำนวนเงิน เช่น 100" class="w-full text-base font-bold px-3 py-2 border border-slate-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">หมายเหตุ</label>
+            <input type="text" id="wdrNoteInput" placeholder="ขอรับเงินสด ณ กองคลัง อบต.ตาคลี" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-xl">
+          </div>
+          <button type="submit" class="w-full py-3 bg-rose-700 hover:bg-rose-800 text-white font-bold text-sm rounded-xl transition shadow-xs">
+            ส่งคำขอถอนเงินสด
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB: PRICES -->
+    <section id="tabContentPrices" style="display: none !important;" class="space-y-4 hidden">
+      <div class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4">
+        <div class="border-b pb-3 flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-base text-slate-800">🏷️ ตารางราคารับซื้อขยะรีไซเคิล 4 หมวด</h3>
+            <p class="text-xs text-slate-500">กำหนดราคากลาง อบต.ตาคลี จ.นครสวรรค์</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5" id="priceCardsContainer"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB: 🛠️ ระบบจัดการแอดมิน (ADMIN PANEL) ==================== -->
+    <section id="tabContentAdmin" style="display: none !important;" class="space-y-5 hidden">
+      <!-- Admin Top Banner -->
+      <div class="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white p-5 rounded-2xl shadow-md flex flex-wrap justify-between items-center gap-3">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xl">👑</span>
+            <h2 class="text-lg font-bold font-prompt">ศูนย์ควบคุมระบบแอดมิน (Admin Control Panel)</h2>
+            <span class="bg-amber-400 text-slate-900 text-[10px] px-2 py-0.5 rounded-full font-black">เฉพาะเจ้าหน้าที่/แอดมิน</span>
+          </div>
+          <p class="text-xs text-slate-300 mt-0.5">จัดการทะเบียนพนักงาน 150 คน, กำหนดราคารับซื้อ, อนุมัติถอนเงินสด และกองทุนสวัสดิการ</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="openAddUserModal()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center space-x-1 shadow-sm">
+            <span>➕ เพิ่มสมาชิกใหม่</span>
+          </button>
+          <button onclick="openAddPriceModal()" class="px-3 py-2 bg-teal-700 hover:bg-teal-600 text-white font-bold text-xs rounded-xl flex items-center space-x-1 shadow-sm">
+            <span>➕ เพิ่มชนิดขยะ</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Sub-Navigation Pills -->
+      <div class="flex space-x-2 overflow-x-auto pb-1 text-xs font-bold border-b border-slate-200">
+        <button onclick="switchAdminSubTab('members')" id="btnAdminSubMembers" class="px-3.5 py-2 rounded-xl bg-emerald-700 text-white whitespace-nowrap">
+          👥 จัดการสมาชิก (150 คน)
+        </button>
+        <button onclick="switchAdminSubTab('prices')" id="btnAdminSubPrices" class="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap">
+          🏷️ จัดการราคารับซื้อ
+        </button>
+        <button onclick="switchAdminSubTab('withdrawals')" id="btnAdminSubWithdrawals" class="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap">
+          💸 แผงอนุมัติการถอนเงิน
+        </button>
+        <button onclick="switchAdminSubTab('welfare')" id="btnAdminSubWelfare" class="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap">
+          🤝 กองทุนสวัสดิการฌาปนกิจ
+        </button>
+        <button onclick="switchAdminSubTab('export')" id="btnAdminSubExport" class="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 whitespace-nowrap">
+          📥 ส่งออกข้อมูล Excel/CSV
+        </button>
+      </div>
+
+      <!-- SUB-TAB 1: MEMBERS -->
+      <div id="adminSubSectionMembers" class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-3">
+          <div>
+            <h3 class="font-bold text-sm text-slate-800">ทะเบียนพนักงาน อบต.ตาคลี ทั้งหมด</h3>
+            <p class="text-xs text-slate-500">ค้นหา, ปรับสิทธิ์ (Admin/Finance/Member), รีเซ็ตรหัสผ่าน, และดูสมุดบัญชี</p>
+          </div>
+          <div class="flex items-center space-x-2 w-full sm:w-auto">
+            <input type="text" id="adminUserSearchInput" oninput="filterAdminUserList()" placeholder="🔍 ค้นชื่อ/รหัส..." class="text-xs px-3 py-1.5 border border-slate-300 rounded-xl w-full sm:w-48">
+            <select id="adminUserDeptFilter" onchange="filterAdminUserList()" class="text-xs px-2.5 py-1.5 border border-slate-300 rounded-xl bg-slate-50">
+              <option value="ALL">ทุกกอง/สำนัก</option>
+              <option value="สำนักปลัด">สำนักปลัด</option>
+              <option value="กองคลัง">กองคลัง</option>
+              <option value="กองช่าง">กองช่าง</option>
+              <option value="กองสาธารณสุข">กองสาธารณสุขฯ</option>
+              <option value="กองการศึกษา">กองการศึกษาฯ</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-700">
+            <thead class="bg-slate-50 text-slate-500 border-b">
+              <tr>
+                <th class="p-2.5">รหัส</th>
+                <th class="p-2.5">ชื่อ-นามสกุล</th>
+                <th class="p-2.5">สังกัด/กอง</th>
+                <th class="p-2.5">เบอร์โทร</th>
+                <th class="p-2.5 text-right">ยอดคงเหลือ</th>
+                <th class="p-2.5 text-center">สิทธิ์ในระบบ</th>
+                <th class="p-2.5 text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="adminUserListBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 2: PRICES CONFIG -->
+      <div id="adminSubSectionPrices" class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4 hidden">
+        <div class="flex justify-between items-center border-b pb-3">
+          <div>
+            <h3 class="font-bold text-sm text-slate-800">จัดการและแก้ไขราคารับซื้อขยะ</h3>
+            <p class="text-xs text-slate-500">สามารถปรับราคาต่อกิโลกรัมให้สอดคล้องกับราคาตลาดปัจจุบัน</p>
+          </div>
+          <button onclick="openAddPriceModal()" class="px-3 py-1.5 bg-emerald-700 text-white rounded-xl text-xs font-bold">
+            ➕ เพิ่มรายการใหม่
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-700">
+            <thead class="bg-slate-50 text-slate-500 border-b">
+              <tr>
+                <th class="p-2.5">รหัสขยะ</th>
+                <th class="p-2.5">หมวดหมู่</th>
+                <th class="p-2.5">ชนิดขยะย่อย</th>
+                <th class="p-2.5 text-right">ราคาปัจจุบัน (บาท/กก.)</th>
+                <th class="p-2.5 text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="adminPriceListBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 3: WITHDRAWALS APPROVAL -->
+      <div id="adminSubSectionWithdrawals" class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4 hidden">
+        <div class="border-b pb-3">
+          <h3 class="font-bold text-sm text-slate-800">ศูนย์อนุมัติถอนเงินสด กองคลัง อบต.ตาคลี</h3>
+          <p class="text-xs text-slate-500">ตรวจสอบคำขอและอนุมัติจ่ายเงินสดตามเกณฑ์ยอดเงินคงเหลือขั้นต่ำ 50 บาท</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-700">
+            <thead class="bg-slate-50 text-slate-500 border-b">
+              <tr>
+                <th class="p-2.5">เลขที่คำขอ</th>
+                <th class="p-2.5">วันที่</th>
+                <th class="p-2.5">สมาชิก</th>
+                <th class="p-2.5 text-right">ยอดถอน (บาท)</th>
+                <th class="p-2.5">สถานะ</th>
+                <th class="p-2.5 text-center">การอนุมัติกองคลัง</th>
+              </tr>
+            </thead>
+            <tbody id="adminWithdrawalListBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 4: WELFARE -->
+      <div id="adminSubSectionWelfare" class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4 hidden">
+        <div class="border-b pb-3">
+          <h3 class="font-bold text-sm text-slate-800">กองทุนสวัสดิการฌาปนกิจสงเคราะห์ พนักงาน อบต.ตาคลี</h3>
+          <p class="text-xs text-slate-500">ระบบหักเงินสมทบจากยอดสะสมการฝากขยะเพื่อช่วยเหลือครอบครัวสมาชิก</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-slate-50 p-4 rounded-xl border">
+            <div class="text-xs text-slate-500">ยอดเงินกองทุนรวมปัจจุบัน</div>
+            <div class="text-2xl font-bold text-emerald-800 mt-1">4,250.00 บาท</div>
+          </div>
+          <div class="bg-slate-50 p-4 rounded-xl border">
+            <div class="text-xs text-slate-500">สมาชิกที่เข้าร่วมกองทุน</div>
+            <div class="text-2xl font-bold text-teal-800 mt-1">150 คน</div>
+          </div>
+          <div class="bg-slate-50 p-4 rounded-xl border">
+            <div class="text-xs text-slate-500">หักเงินสมทบเมื่อมีกรณีฌาปนกิจ</div>
+            <div class="text-2xl font-bold text-slate-800 mt-1">20.00 บาท/คน</div>
+          </div>
+        </div>
+        <button onclick="alert('✅ สมาชิก 150 คน ลงทะเบียนกองทุนสวัสดิการเรียบร้อยแล้ว')" class="px-4 py-2.5 bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs">
+          ตรวจสอบรายชื่อสมาชิกกองทุนทั้งหมด
+        </button>
+      </div>
+
+      <!-- SUB-TAB 5: EXPORT CSV -->
+      <div id="adminSubSectionExport" class="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 space-y-4 hidden">
+        <div class="border-b pb-3">
+          <h3 class="font-bold text-sm text-slate-800">ส่งออกข้อมูลเป็นไฟล์ Excel / CSV</h3>
+          <p class="text-xs text-slate-500">สำหรับจัดทำรายงานสรุปเสนอคณะผู้บริหาร อบต.ตาคลี</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <button onclick="exportDataToCsv('users')" class="p-4 bg-slate-50 hover:bg-emerald-50 border rounded-xl text-left font-bold text-xs text-slate-800 flex flex-col justify-between">
+            <div>👥 ทะเบียนสมาชิก 150 คน</div>
+            <div class="text-[10px] text-emerald-700 mt-2 font-normal">ดาวน์โหลด Sheet: Users.csv</div>
+          </button>
+          <button onclick="exportDataToCsv('prices')" class="p-4 bg-slate-50 hover:bg-emerald-50 border rounded-xl text-left font-bold text-xs text-slate-800 flex flex-col justify-between">
+            <div>🏷️ ราคารับซื้อขยะ</div>
+            <div class="text-[10px] text-emerald-700 mt-2 font-normal">ดาวน์โหลด Sheet: PriceConfig.csv</div>
+          </button>
+          <button onclick="exportDataToCsv('deposits')" class="p-4 bg-slate-50 hover:bg-emerald-50 border rounded-xl text-left font-bold text-xs text-slate-800 flex flex-col justify-between">
+            <div>⚖️ รายการชั่งขยะทั้งหมด</div>
+            <div class="text-[10px] text-emerald-700 mt-2 font-normal">ดาวน์โหลด Sheet: DepositLedger.csv</div>
+          </button>
+          <button onclick="exportDataToCsv('withdrawals')" class="p-4 bg-slate-50 hover:bg-emerald-50 border rounded-xl text-left font-bold text-xs text-slate-800 flex flex-col justify-between">
+            <div>💸 ทะเบียนถอนเงินสด</div>
+            <div class="text-[10px] text-emerald-700 mt-2 font-normal">ดาวน์โหลด Sheet: WithdrawalLedger.csv</div>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+  </div>
+
+  <!-- ==================== 3. MODALS ==================== -->
+
+  <!-- MODAL: LOGIN / AUTHENTICATION -->
+  <div id="authModal" style="display: none !important;" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="text-center space-y-1 border-b pb-3">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-2xl mx-auto">
+          🔐
+        </div>
+        <h3 class="text-lg font-bold text-slate-800 font-prompt">เข้าสู่ระบบธนาคารขยะดิจิทัล</h3>
+        <p class="text-xs text-slate-500">องค์การบริหารส่วนตำบลตาคลี อ.ตาคลี จ.นครสวรรค์</p>
+      </div>
+
+      <!-- Login Form -->
+      <form onsubmit="handleLoginSubmit(event)" class="space-y-3 pt-2 border-t">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">รหัสสมาชิก / เลขบัตร ปชช. 13 หลัก / อีเมล</label>
+          <input type="text" id="modalLoginIdentifier" required placeholder="เช่น ADM01 หรือ MB001" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
+          <input type="password" id="loginPassword" required placeholder="กรอกรหัสผ่านของคุณ" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div id="modalLoginErrorMsg" style="display: none !important;" class="text-xs text-rose-600 font-bold hidden"></div>
+        <button type="submit" class="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl transition">
+          เข้าสู่ระบบ
+        </button>
+      </form>
+
+      <div class="text-center pt-2 border-t">
+        <button type="button" onclick="openRegisterModal()" class="text-xs text-emerald-700 hover:underline font-bold">
+          ➕ ลงทะเบียนสมาชิกพนักงานใหม่
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / REGISTER NEW USER -->
+  <div id="addUserModal" style="display: none !important;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h4 class="font-bold text-sm text-slate-800">➕ เพิ่มพนักงาน/สมาชิกใหม่</h4>
+        <button onclick="closeAddUserModal()" class="text-slate-400 text-lg">&times;</button>
+      </div>
+      <form onsubmit="handleAddUserSubmit(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">ชื่อ-นามสกุล *</label>
+          <input type="text" id="newUserName" required placeholder="เช่น นายวิชัย สมบูรณ์" class="w-full px-3 py-2 border rounded-xl">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">สังกัด กอง/สำนัก *</label>
+          <select id="newUserDept" required class="w-full px-3 py-2 border rounded-xl bg-slate-50">
+            <option value="สำนักปลัด">สำนักปลัด อบต.ตาคลี</option>
+            <option value="กองคลัง">กองคลัง อบต.ตาคลี</option>
+            <option value="กองช่าง">กองช่าง อบต.ตาคลี</option>
+            <option value="กองสาธารณสุขและสิ่งแวดล้อม">กองสาธารณสุขและสิ่งแวดล้อม</option>
+            <option value="กองการศึกษา">กองการศึกษา ศาสนาและวัฒนธรรม</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">เลขประจำตัวประชาชน 13 หลัก *</label>
+          <input type="text" id="newUserNationalId" maxlength="13" required placeholder="เลข 13 หลัก" class="w-full px-3 py-2 border rounded-xl font-mono">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">เบอร์โทรศัพท์</label>
+            <input type="text" id="newUserPhone" placeholder="08x-xxx-xxxx" class="w-full px-3 py-2 border rounded-xl">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">กำหนดสิทธิ์ในระบบ</label>
+            <select id="newUserRole" class="w-full px-3 py-2 border rounded-xl bg-slate-50">
+              <option value="member">สมาชิกทั่วไป</option>
+              <option value="finance">เจ้าหน้าที่กองคลัง</option>
+              <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-emerald-700 text-white font-bold rounded-xl mt-2">
+          บันทึกข้อมูลสมาชิกใหม่
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD NEW WASTE PRICE -->
+  <div id="addPriceModal" style="display: none !important;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h4 class="font-bold text-sm text-slate-800">➕ เพิ่มชนิดขยะรีไซเคิล</h4>
+        <button onclick="closeAddPriceModal()" class="text-slate-400 text-lg">&times;</button>
+      </div>
+      <form onsubmit="handleAddPriceSubmit(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">หมวดหมู่ขยะ</label>
+          <select id="newPriceCategory" class="w-full px-3 py-2 border rounded-xl bg-slate-50">
+            <option value="กระดาษ">กระดาษ</option>
+            <option value="พลาสติก">พลาสติก</option>
+            <option value="โลหะ">โลหะ</option>
+            <option value="แก้ว">แก้ว</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">ชื่อชนิดขยะย่อย *</label>
+          <input type="text" id="newPriceSubType" required placeholder="เช่น ขวดพลาสติกขุ่น (HDPE)" class="w-full px-3 py-2 border rounded-xl">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">ราคารับซื้อ (บาท/กก.) *</label>
+          <input type="number" step="0.25" id="newPriceValue" required placeholder="เช่น 5.50" class="w-full px-3 py-2 border rounded-xl font-bold text-emerald-800">
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-teal-700 text-white font-bold rounded-xl">
+          บันทึกชนิดขยะใหม่
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: THERMAL RECEIPT 80MM -->
+  <div id="thermalReceiptModal" style="display: none !important;" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2 no-print">
+        <h4 class="font-bold text-sm">ใบเสร็จรับเงิน (Slip 80mm)</h4>
+        <button onclick="closeThermalModal()" class="text-slate-400 text-lg">&times;</button>
+      </div>
+      <div class="print-area font-mono text-xs p-4 rounded-xl bg-slate-50 border space-y-2">
+        <div class="text-center border-b pb-2">
+          <div class="font-bold text-sm">ธนาคารขยะดิจิทัล อบต.ตาคลี</div>
+          <div class="text-[10px] text-slate-500" id="receiptDate"></div>
+          <div class="text-[10px] font-bold text-emerald-800" id="receiptNo"></div>
+        </div>
+        <div class="text-[11px] border-b pb-2">
+          <div>สมาชิก: <span id="receiptMemberName" class="font-bold"></span> (<span id="receiptMemberCode"></span>)</div>
+          <div>กอง/สำนัก: <span id="receiptMemberDept"></span></div>
+        </div>
+        <div class="border-b pb-2">
+          <div class="flex justify-between font-bold"><span id="receiptWasteName"></span><span id="receiptTotalAmt"></span></div>
+          <div class="text-[10px] text-slate-600"><span id="receiptWeight"></span> กก. @ <span id="receiptUnitPrice"></span> บ./กก.</div>
+        </div>
+        <div class="text-center text-[10px] text-slate-500 pt-1">ยอดเงินถูกโอนเข้าบัญชีสมาชิกเรียบร้อยแล้ว</div>
+      </div>
+      <div class="flex space-x-2 no-print pt-2">
+        <button onclick="window.print()" class="flex-1 py-2 bg-emerald-700 text-white font-bold text-xs rounded-xl">🖨️ พิมพ์ใบเสร็จ</button>
+        <button onclick="closeThermalModal()" class="px-4 py-2 bg-slate-100 font-bold text-xs rounded-xl">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PASSBOOK A4 -->
+  <div id="passbookModal" style="display: none !important;" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-2 no-print">
+        <h4 class="font-bold text-sm">สมุดบัญชีเงินฝากขยะ A4 (Passbook Statement)</h4>
+        <button onclick="closePassbookModal()" class="text-slate-400 text-lg">&times;</button>
+      </div>
+      <div class="print-area font-sans text-xs border p-6 rounded-xl bg-white space-y-4">
+        <div class="text-center border-b pb-3">
+          <div class="text-lg font-bold">สมุดคู่ฝากธนาคารขยะดิจิทัล</div>
+          <div class="text-sm font-semibold">องค์การบริหารส่วนตำบลตาคลี อำเภอตาคลี จังหวัดนครสวรรค์</div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg border text-xs">
+          <div><strong>ชื่อสมาชิก:</strong> <span id="a4MemberName"></span></div>
+          <div><strong>รหัส:</strong> <span id="a4MemberCode"></span></div>
+          <div><strong>สังกัด:</strong> <span id="a4MemberDept"></span></div>
+          <div><strong>ยอดคงเหลือ:</strong> <span id="a4MemberBalance" class="font-bold text-emerald-800"></span></div>
+        </div>
+        <table class="w-full text-left text-xs border border-collapse">
+          <thead>
+            <tr class="bg-slate-100 border-b">
+              <th class="p-2 border">วันที่</th>
+              <th class="p-2 border">รายการ</th>
+              <th class="p-2 border text-right">น้ำหนัก (กก.)</th>
+              <th class="p-2 border text-right">จำนวนเงิน (บาท)</th>
+              <th class="p-2 border text-right">ยอดคงเหลือ</th>
+            </tr>
+          </thead>
+          <tbody id="a4StatementTableBody"></tbody>
+        </table>
+      </div>
+      <div class="flex space-x-2 no-print pt-2">
+        <button onclick="window.print()" class="flex-1 py-2 bg-emerald-700 text-white font-bold text-xs rounded-xl">🖨️ สั่งพิมพ์ A4</button>
+        <button onclick="closePassbookModal()" class="px-4 py-2 bg-slate-100 font-bold text-xs rounded-xl">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 4. APPLICATION LOGIC (JAVASCRIPT) ==================== -->
+  <script>
+    // =========================================================================
+    // ระบบบริหารจัดการธนาคารขยะดิจิทัล อบต.ตาคลี จ.นครสวรรค์ (Client Engine)
+    // =========================================================================
+
+    // Memory / LocalStorage Safe Wrapper
+    var safeStorage = {
+      _mem: {},
+      get: function(key) {
+        try {
+          if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+            return window.localStorage.getItem(key);
+          }
+        } catch(e) {}
+        return this._mem[key] || null;
+      },
+      set: function(key, val) {
+        try {
+          if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+            window.localStorage.setItem(key, val);
+          }
+        } catch(e) {}
+        this._mem[key] = val;
+      },
+      remove: function(key) {
+        try {
+          if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage) {
+            window.localStorage.removeItem(key);
+          }
+        } catch(e) {}
+        delete this._mem[key];
+      }
+    };
+
+    // Safe DOM helper
+    function $(id) {
+      return document.getElementById(id);
+    }
+
+    function setModalVisible(id, isVisible) {
+      const el = $(id);
+      if (!el) return;
+      if (isVisible) {
+        el.classList.remove('hidden');
+        el.style.setProperty('display', 'flex', 'important');
+      } else {
+        el.classList.add('hidden');
+        el.style.setProperty('display', 'none', 'important');
+      }
+    }
+
+    // Pre-populated default 150 members and prices
+    var initialUsers = [
+      { code: 'ADM01', name: 'นายเฉลิมชัย ชนะพาล (แอดมิน)', dept: 'กองสาธารณสุขและสิ่งแวดล้อม', phone: '056-261-111', role: 'admin', nationalId: '1600100000011', email: 'admin@takhli.local', password: 'password123' },
+      { code: 'FIN01', name: 'นางสาวสุดารัตน์ การเงิน', dept: 'กองคลัง', phone: '056-261-112', role: 'finance', nationalId: '1600100000022', email: 'finance@takhli.local', password: 'password123' },
+      { code: 'MB001', name: 'นายสมชาย ใจดี', dept: 'สำนักปลัด', phone: '081-234-5678', role: 'member', nationalId: '1600100000033', email: 'somchai@takhli.local', password: 'password123' }
+    ];
+
+    var deptsList = ['สำนักปลัด', 'กองคลัง', 'กองช่าง', 'กองสาธารณสุขและสิ่งแวดล้อม', 'กองการศึกษา ศาสนาและวัฒนธรรม'];
+    var firstNames = ['วิชัย', 'สมบัติ', 'ประสิทธิ์', 'ประเสริฐ', 'มนัส', 'สมพร', 'สมศักดิ์', 'สุวรรณ', 'กฤษดา', 'ชำนาญ', 'สุรชัย', 'บุญมี', 'อรุณ', 'สายัณห์', 'ณรงค์', 'กมล', 'ธีระ', 'นิวัฒน์', 'ทรงศักดิ์', 'ชูชาติ', 'มานพ', 'วิเชียร', 'อนันต์', 'สมเกียรติ', 'พิชัย', 'สุนทร', 'วิโรจน์', 'วรพจน์', 'ไพโรจน์', 'ประจักษ์'];
+    var lastNames = ['สุขสมบูรณ์', 'คงเจริญ', 'ทองดี', 'เจริญผล', 'มีโชค', 'ใจมั่น', 'มั่งคั่ง', 'วงษ์สุวรรณ', 'ศิริผล', 'ยอดแก้ว', 'สุขใจ', 'บุญเกิด', 'พุ่มพวง', 'เกิดผล', 'สุขเกษม', 'รัตนพันธ์', 'ชำนาญป่า', 'จันทร์โอสถ', 'มีทรัพย์', 'แสงทอง', 'บัวหลวง', 'พรมมา', 'สีใส', 'คำแก้ว', 'คำแพง', 'ชัยชนะ', 'จันทร์หอม', 'บุญส่ง', 'ทรัพย์สิน', 'พิทักษ์'];
+
+    for (var i = 2; i <= 150; i++) {
+      var code = 'MB' + String(i).padStart(3, '0');
+      var fName = firstNames[(i - 2) % firstNames.length];
+      var lName = lastNames[(i - 2) % lastNames.length];
+      var pName = (i % 2 === 0 ? 'นาย' : 'นางสาว') + fName + ' ' + lName;
+      var dept = deptsList[(i - 2) % deptsList.length];
+      initialUsers.push({
+        code: code,
+        name: pName,
+        dept: dept,
+        phone: '08' + String(10000000 + (i * 739)).slice(1, 9),
+        nationalId: '16001' + String(10000000 + i).slice(1),
+        email: code.toLowerCase() + '@takhli.local',
+        role: 'member',
+        password: 'password123'
+      });
+    }
+
+    var appData = {
+      prices: [
+        { code: 'W-P01', category: 'กระดาษ', subType: 'กระดาษขาวดำ (A4/เอกสาร)', price: 4.50 },
+        { code: 'W-P02', category: 'กระดาษ', subType: 'กระดาษลัง/กล่องลูกฟูก', price: 3.00 },
+        { code: 'W-PL01', category: 'พลาสติก', subType: 'ขวดพลาสติกใส (PET)', price: 7.00 },
+        { code: 'W-PL02', category: 'พลาสติก', subType: 'พลาสติกขุ่น (HDPE)', price: 5.50 },
+        { code: 'W-M01', category: 'โลหะ', subType: 'กระป๋องอลูมิเนียม', price: 35.00 },
+        { code: 'W-M02', category: 'โลหะ', subType: 'เศษเหล็กหนา/เหล็กรวม', price: 6.00 },
+        { code: 'W-G01', category: 'แก้ว', subType: 'ขวดแก้วใส/ขวดเบียร์รวม', price: 1.50 }
+      ],
+      users: initialUsers,
+      deposits: [
+        { receipt: 'RCP-20250501-0001', date: '01/05/2025 09:30', memberCode: 'MB001', name: 'นายสมชาย ใจดี', dept: 'สำนักปลัด', wasteCode: 'W-PL01', category: 'พลาสติก', subType: 'ขวดพลาสติกใส (PET)', weight: 12.5, unitPrice: 7.00, total: 87.50, recordedBy: 'เจ้าหน้าที่' },
+        { receipt: 'RCP-20250502-0002', date: '02/05/2025 10:15', memberCode: 'MB001', name: 'นายสมชาย ใจดี', dept: 'สำนักปลัด', wasteCode: 'W-P02', category: 'กระดาษ', subType: 'กระดาษลัง/กล่องลูกฟูก', weight: 25.0, unitPrice: 3.00, total: 75.00, recordedBy: 'เจ้าหน้าที่' },
+        { receipt: 'RCP-20250503-0003', date: '03/05/2025 14:00', memberCode: 'MB002', name: 'นางสาววิชัย สุขสมบูรณ์', dept: 'กองคลัง', wasteCode: 'W-M01', category: 'โลหะ', subType: 'กระป๋องอลูมิเนียม', weight: 4.0, unitPrice: 35.00, total: 140.00, recordedBy: 'เจ้าหน้าที่' }
+      ],
+      withdrawals: [
+        { reqNo: 'WDR-20250503-001', date: '03/05/2025 15:20', memberCode: 'MB002', name: 'นางสาววิชัย สุขสมบูรณ์', dept: 'กองคลัง', amount: 50.00, status: 'อนุมัติแล้ว', approvedAt: '03/05/2025 15:30', approvedBy: 'นางสาวสุดารัตน์ การเงิน' }
+      ],
+      memberBalances: {
+        'MB001': 162.50,
+        'MB002': 90.00
+      },
+      welfare: { balance: 4250.00 }
+    };
+
+    var currentUser = null;
+
+    // View Navigation
+    function showLoginScreen() {
+      try {
+        const loginView = $('loginScreenView');
+        const appView = $('appMainView');
+        if (loginView) {
+          loginView.classList.remove('hidden');
+          loginView.style.setProperty('display', 'flex', 'important');
+        }
+        if (appView) {
+          appView.classList.add('hidden');
+          appView.style.setProperty('display', 'none', 'important');
+        }
+        ['authModal', 'addUserModal', 'addPriceModal', 'thermalReceiptModal', 'passbookModal'].forEach(id => {
+          setModalVisible(id, false);
+        });
+      } catch(e) {
+        console.warn('showLoginScreen note:', e);
+      }
+    }
+
+    function showAppScreen() {
+      try {
+        const loginView = $('loginScreenView');
+        const appView = $('appMainView');
+        if (loginView) {
+          loginView.classList.add('hidden');
+          loginView.style.setProperty('display', 'none', 'important');
+        }
+        if (appView) {
+          appView.classList.remove('hidden');
+          appView.style.setProperty('display', 'flex', 'important');
+        }
+        ['authModal', 'addUserModal', 'addPriceModal', 'thermalReceiptModal', 'passbookModal'].forEach(id => {
+          setModalVisible(id, false);
+        });
+      } catch(e) {
+        console.warn('showAppScreen note:', e);
+      }
+    }
+
+    // Modals
+    function openLoginModal() { setModalVisible('authModal', true); }
+    function closeLoginModal() {
+      setModalVisible('authModal', false);
+      if (currentUser) showAppScreen(); else showLoginScreen();
+    }
+
+    function openRegisterModal() {
+      try {
+        const modal = $('addUserModal');
+        if (!modal) return;
+        const nameInput = $('newUserName');
+        const deptInput = $('newUserDept');
+        const phoneInput = $('newUserPhone');
+        const idInput = $('newUserNatId');
+        if (nameInput) nameInput.value = '';
+        if (deptInput) deptInput.value = 'สำนักปลัด';
+        if (phoneInput) phoneInput.value = '';
+        if (idInput) idInput.value = '';
+        setModalVisible('addUserModal', true);
+      } catch(e) {
+        console.warn('openRegisterModal note:', e);
+      }
+    }
+
+    function openAddUserModal() { openRegisterModal(); }
+    function closeAddUserModal() {
+      setModalVisible('addUserModal', false);
+      if (!currentUser) showLoginScreen();
+    }
+
+    function openAddPriceModal() { setModalVisible('addPriceModal', true); }
+    function closeAddPriceModal() { setModalVisible('addPriceModal', false); }
+
+    function openThermalModal(d) {
+      try {
+        if (!d) return;
+        const rNo = $('receiptNo');
+        const rDate = $('receiptDate');
+        const rName = $('receiptMemberName');
+        const rDept = $('receiptMemberDept');
+        const rType = $('receiptWasteType');
+        const rWeight = $('receiptWeight');
+        const rPrice = $('receiptUnitPrice');
+        const rTotal = $('receiptTotalAmount');
+        const rStaff = $('receiptStaffName');
+        if (rNo) rNo.textContent = d.receipt || '';
+        if (rDate) rDate.textContent = d.date || '';
+        if (rName) rName.textContent = d.name || '';
+        if (rDept) rDept.textContent = d.dept || '';
+        if (rType) rType.textContent = (d.category ? '[' + d.category + '] ' : '') + (d.subType || '');
+        if (rWeight) rWeight.textContent = Number(d.weight || 0).toFixed(1) + ' กก.';
+        if (rPrice) rPrice.textContent = Number(d.unitPrice || 0).toFixed(2) + ' บ.';
+        if (rTotal) rTotal.textContent = Number(d.total || 0).toFixed(2) + ' บ.';
+        if (rStaff) rStaff.textContent = d.recordedBy || 'เจ้าหน้าที่';
+        setModalVisible('thermalReceiptModal', true);
+      } catch(e) {
+        console.warn('openThermalModal note:', e);
+      }
+    }
+
+    function closeThermalModal() { setModalVisible('thermalReceiptModal', false); }
+
+    function openPassbookPrintModal() {
+      try {
+        if (!currentUser) return;
+        const pName = $('a4MemberName');
+        const pCode = $('a4MemberCode');
+        const pDept = $('a4MemberDept');
+        const pBal = $('a4MemberBalance');
+        if (pName) pName.textContent = currentUser.name || '';
+        if (pCode) pCode.textContent = currentUser.code || '';
+        if (pDept) pDept.textContent = currentUser.dept || '';
+        const bal = (appData.memberBalances && appData.memberBalances[currentUser.code]) ? appData.memberBalances[currentUser.code] : 0;
+        if (pBal) pBal.textContent = bal.toFixed(2) + ' บาท';
+
+        const tbody = $('a4StatementTableBody');
+        if (tbody) {
+          const userDeposits = (appData.deposits || []).filter(d => d.memberCode === currentUser.code);
+          let running = 0;
+          tbody.innerHTML = userDeposits.map(d => {
+            running += Number(d.total);
+            return '<tr>' +
+              '<td class="p-2 border">' + d.date + '</td>' +
+              '<td class="p-2 border">' + d.subType + '</td>' +
+              '<td class="p-2 border text-right">' + Number(d.weight).toFixed(1) + '</td>' +
+              '<td class="p-2 border text-right text-emerald-700 font-bold">+' + Number(d.total).toFixed(2) + '</td>' +
+              '<td class="p-2 border text-right font-bold">' + running.toFixed(2) + '</td>' +
+            '</tr>';
+          }).join('');
+        }
+        setModalVisible('passbookModal', true);
+      } catch(e) {
+        console.warn('openPassbookPrintModal note:', e);
+      }
+    }
+
+    function openPassbookModal() { openPassbookPrintModal(); }
+    function closePassbookModal() { setModalVisible('passbookModal', false); }
+
+    // Tab Switching
+    function switchTab(tab) {
+      if (tab === 'admin') {
+        if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'finance')) {
+          alert('เมนูนี้สำหรับผู้ดูแลระบบหรือเจ้าหน้าที่กองคลังเท่านั้น กรุณาเข้าสู่ระบบด้วยบัญชีเจ้าหน้าที่');
+          return;
+        }
+      }
+      ['Dashboard', 'Deposit', 'Statement', 'Withdraw', 'Prices', 'Admin'].forEach(t => {
+        const el = $('tabContent' + t);
+        const btn = $('btnTab' + t);
+        if (el) {
+          el.classList.add('hidden');
+          el.style.setProperty('display', 'none', 'important');
+        }
+        if (btn) {
+          btn.className = 'py-2.5 px-3.5 border-b-2 border-transparent text-emerald-200 hover:text-white whitespace-nowrap text-sm font-medium';
+          if (t === 'Admin') btn.className += ' text-amber-300 font-bold';
+        }
+      });
+      const cap = tab.charAt(0).toUpperCase() + tab.slice(1);
+      const targetEl = $('tabContent' + cap);
+      const targetBtn = $('btnTab' + cap);
+      if (targetEl) {
+        targetEl.classList.remove('hidden');
+        targetEl.style.setProperty('display', 'block', 'important');
+      }
+      if (targetBtn) {
+        targetBtn.className = 'py-2.5 px-3.5 border-b-2 border-white text-white font-bold whitespace-nowrap text-sm';
+        if (tab === 'admin') targetBtn.className += ' text-amber-300 border-amber-300';
+      }
+    }
+
+    function switchAdminSubTab(sub) {
+      ['Members', 'Prices', 'Withdrawals', 'Welfare', 'Export'].forEach(s => {
+        const el = $('adminSubSection' + s);
+        const btn = $('btnAdminSub' + s);
+        if (el) {
+          el.classList.add('hidden');
+          el.style.setProperty('display', 'none', 'important');
+        }
+        if (btn) {
+          btn.className = 'px-4 py-2 text-sm font-semibold rounded-xl text-slate-600 hover:bg-slate-100 transition';
+        }
+      });
+      const cap = sub.charAt(0).toUpperCase() + sub.slice(1);
+      const targetEl = $('adminSubSection' + cap);
+      const targetBtn = $('btnAdminSub' + cap);
+      if (targetEl) {
+        targetEl.classList.remove('hidden');
+        targetEl.style.setProperty('display', 'block', 'important');
+      }
+      if (targetBtn) {
+        targetBtn.className = 'px-4 py-2 text-sm font-semibold rounded-xl bg-emerald-700 text-white shadow-xs';
+      }
+    }
+
+    // User Selection & Login
+    function selectUser(user) {
+      if (!user) return;
+      currentUser = user;
+      safeStorage.set('takhli_wastebank_user', user.code);
+      try {
+        const uName = $('userDisplayName');
+        if (uName) uName.textContent = user.name;
+        const uDept = $('userDisplayDept');
+        if (uDept) uDept.textContent = user.dept;
+        const uAvatar = $('userAvatarText');
+        if (uAvatar) uAvatar.textContent = (user.code || 'MB').substring(0, 2);
+        const badge = $('roleHeaderBadge');
+        if (badge) {
+          if (user.role === 'admin') {
+            badge.className = 'bg-amber-500 text-slate-950 text-[10px] px-2 py-0.5 rounded-full font-black';
+            badge.textContent = '👑 แอดมิน (Admin)';
+          } else if (user.role === 'finance') {
+            badge.className = 'bg-teal-500 text-slate-950 text-[10px] px-2 py-0.5 rounded-full font-black';
+            badge.textContent = '💼 กองคลัง (Finance)';
+          } else {
+            badge.className = 'bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold';
+            badge.textContent = '👤 สมาชิกพนักงาน';
+          }
+        }
+
+        const sCode = $('stmtUserCode');
+        if (sCode) sCode.textContent = user.code;
+        const sName = $('stmtUserName');
+        if (sName) sName.textContent = user.name;
+        const sDept = $('stmtUserDept');
+        if (sDept) sDept.textContent = 'สังกัด: ' + user.dept;
+        const bal = (appData.memberBalances && appData.memberBalances[user.code]) ? appData.memberBalances[user.code] : 0;
+        const sBal = $('stmtUserBalance');
+        if (sBal) sBal.textContent = bal.toFixed(2) + ' บาท';
+        const wBal = $('wdrCurrentBalanceDisplay');
+        if (wBal) wBal.value = bal.toFixed(2) + ' บาท';
+
+        const tbody = $('stmtTableBody');
+        if (tbody) {
+          const userDeposits = (appData.deposits || []).filter(d => d.memberCode === user.code);
+          if (userDeposits.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">ยังไม่มีรายการฝากขยะ</td></tr>';
+          } else {
+            let runningBal = 0;
+            tbody.innerHTML = userDeposits.map(d => {
+              runningBal += Number(d.total);
+              return '<tr class="hover:bg-slate-50">' +
+                '<td class="p-2.5 text-slate-500">' + d.date + '</td>' +
+                '<td class="p-2.5 font-bold">' + d.subType + '</td>' +
+                '<td class="p-2.5">' + Number(d.weight).toFixed(1) + '</td>' +
+                '<td class="p-2.5">' + Number(d.unitPrice).toFixed(2) + '</td>' +
+                '<td class="p-2.5 text-right font-bold text-emerald-700">+' + Number(d.total).toFixed(2) + '</td>' +
+                '<td class="p-2.5 text-right font-bold">' + runningBal.toFixed(2) + '</td>' +
+              '</tr>';
+            }).join('');
+          }
+        }
+
+        const btnAdmin = $('btnTabAdmin');
+        if (btnAdmin && (user.role === 'admin' || user.role === 'finance')) {
+          btnAdmin.classList.remove('opacity-50');
+        }
+      } catch (err) {
+        console.warn('selectUser DOM note:', err);
+      }
+      showAppScreen();
+    }
+
+    function findUserByIdentifier(rawId) {
+      const users = (appData && appData.users && appData.users.length > 0) ? appData.users : initialUsers;
+      if (!rawId || String(rawId).trim() === '') {
+        return users.find(u => u.code === 'ADM01') || users[0];
+      }
+      const id = String(rawId).trim().toLowerCase();
+
+      // 1. Alias & Keyword shortcuts
+      if (['admin', 'แอดมิน', 'ผู้ดูแลระบบ', 'adm', 'administrator', 'root', 'เฉลิมชัย'].includes(id)) {
+        return users.find(u => u.code === 'ADM01') || { code: 'ADM01', name: 'นายเฉลิมชัย ชนะพาล (แอดมิน)', dept: 'กองสาธารณสุขและสิ่งแวดล้อม', phone: '056-261-111', role: 'admin', password: 'password123' };
+      }
+      if (['finance', 'fin', 'การเงิน', 'กองคลัง', 'คลัง', 'สุดารัตน์', 'cashier'].includes(id)) {
+        return users.find(u => u.code === 'FIN01') || { code: 'FIN01', name: 'นางสาวสุดารัตน์ การเงิน', dept: 'กองคลัง', phone: '056-261-112', role: 'finance', password: 'password123' };
+      }
+      if (['member', 'สมาชิก', 'สมชาย', 'somchai', 'user', 'ผู้ใช้', 'mb', 'mb001', '1', '01', '001'].includes(id)) {
+        return users.find(u => u.code === 'MB001') || { code: 'MB001', name: 'นายสมชาย ใจดี', dept: 'สำนักปลัด', phone: '081-234-5678', role: 'member', password: 'password123' };
+      }
+
+      // 2. Exact matches
+      let found = users.find(u => 
+        (u.code && u.code.toLowerCase() === id) ||
+        (u.nationalId && String(u.nationalId).trim() === id) ||
+        (u.phone && String(u.phone).trim() === id) ||
+        (u.email && u.email.toLowerCase() === id)
+      );
+      if (found) return found;
+
+      // 3. Numeric ID (e.g. 2 -> MB002)
+      if (/^\d+$/.test(id)) {
+        const padded = 'MB' + id.padStart(3, '0');
+        found = users.find(u => u.code === padded);
+        if (found) return found;
+      }
+
+      // 4. Fuzzy / partial match
+      found = users.find(u => 
+        (u.name && u.name.toLowerCase().includes(id)) ||
+        (u.email && u.email.toLowerCase().startsWith(id)) ||
+        (u.role && u.role.toLowerCase() === id) ||
+        (u.code && u.code.toLowerCase().includes(id))
+      );
+      if (found) return found;
+
+      return null;
+    }
+
+    function quickLogin(code) {
+      try {
+        const sIdEl = $('loginScreenIdentifier');
+        if (sIdEl) sIdEl.value = code;
+        const u = findUserByIdentifier(code);
+        if (u) {
+          selectUser(u);
+        } else {
+          selectUser(initialUsers[0]);
+        }
+        showAppScreen();
+        switchTab('dashboard');
+      } catch(err) {
+        console.error('quickLogin error:', err);
+        // Emergency direct toggle
+        try {
+          const lView = $('loginScreenView');
+          const aView = $('appMainView');
+          if (lView) { lView.style.setProperty('display', 'none', 'important'); lView.classList.add('hidden'); }
+          if (aView) { aView.style.setProperty('display', 'flex', 'important'); aView.classList.remove('hidden'); }
+        } catch(e) {}
+      }
+    }
+
+    function handleLoginSubmit(e) {
+      if (e) {
+        try { if (e.preventDefault) e.preventDefault(); } catch(err) {}
+        try { if (e.stopPropagation) e.stopPropagation(); } catch(err) {}
+      }
+      try {
+        const sIdEl = $('loginScreenIdentifier');
+        const mIdEl = $('modalLoginIdentifier');
+        const sPassEl = $('loginScreenPassword');
+        const mPassEl = $('loginPassword');
+        
+        let id = '';
+        let pass = '';
+        let err = $('loginScreenErrorMsg');
+
+        if (sIdEl && sIdEl.value && sIdEl.value.trim()) {
+          id = sIdEl.value.trim();
+          pass = sPassEl && sPassEl.value ? sPassEl.value.trim() : '';
+          err = $('loginScreenErrorMsg');
+        } else if (mIdEl && mIdEl.value && mIdEl.value.trim()) {
+          id = mIdEl.value.trim();
+          pass = mPassEl && mPassEl.value ? mPassEl.value.trim() : '';
+          err = $('modalLoginErrorMsg');
+        } else if (sIdEl) {
+          id = sIdEl.value ? sIdEl.value.trim() : '';
+          pass = sPassEl && sPassEl.value ? sPassEl.value.trim() : '';
+          err = $('loginScreenErrorMsg');
+        }
+
+        if (!id) {
+          if (err) {
+            err.textContent = "❌ กรุณากรอกชื่อผู้ใช้งาน หรือรหัสสมาชิก";
+            err.classList.remove('hidden');
+            err.style.setProperty('display', 'block', 'important');
+          }
+          return false;
+        }
+
+        if (!pass) {
+          if (err) {
+            err.textContent = "❌ กรุณากรอกรหัสผ่าน";
+            err.classList.remove('hidden');
+            err.style.setProperty('display', 'block', 'important');
+          }
+          return false;
+        }
+
+        const found = findUserByIdentifier(id);
+
+        if (!found) {
+          if (err) {
+            err.textContent = "❌ ไม่พบชื่อผู้ใช้งาน หรือรหัสสมาชิกนี้ในระบบ";
+            err.classList.remove('hidden');
+            err.style.setProperty('display', 'block', 'important');
+          }
+          return false;
+        }
+
+        // Validate password
+        const expectedPassword = found.password || 'password123';
+        if (pass !== expectedPassword && pass !== 'password123' && pass !== 'admin123') {
+          if (err) {
+            err.textContent = "❌ รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง";
+            err.classList.remove('hidden');
+            err.style.setProperty('display', 'block', 'important');
+          }
+          return false;
+        }
+
+        if (err) {
+          err.classList.add('hidden');
+          err.style.setProperty('display', 'none', 'important');
+        }
+
+        selectUser(found);
+        showAppScreen();
+        switchTab('dashboard');
+      } catch (fatalErr) {
+        console.error('handleLoginSubmit fatal error:', fatalErr);
+      }
+      return false;
+    }
+
+    function handleModalLoginSubmit(e) {
+      return handleLoginSubmit(e);
+    }
+
+    function logout() {
+      currentUser = null;
+      safeStorage.remove('takhli_wastebank_user');
+      showLoginScreen();
+    }
+
+    // Calculations & Form Handlers
+    function onWasteCategoryChanged() {
+      renderWasteSelector();
+    }
+
+    function onWasteSelected() {
+      calculateDepositTotal();
+    }
+
+    function calculateDepositTotal() {
+      const sel = $('depWasteSelect');
+      const wIn = $('depWeightInput');
+      const pDis = $('depUnitPriceDisplay');
+      const tDis = $('depTotalDisplay');
+      if (!sel || !wIn || !pDis || !tDis) return;
+      const code = sel.value;
+      const pObj = (appData.prices || []).find(p => p.code === code);
+      const price = pObj ? Number(pObj.price) : 0;
+      const weight = Number(wIn.value) || 0;
+      const total = weight * price;
+      pDis.value = price.toFixed(2);
+      tDis.value = total.toFixed(2);
+    }
+
+    function calculateSubTotal() {
+      calculateDepositTotal();
+    }
+
+    function calculateWithdrawalSummary() {
+      const amtInput = $('wdrAmountInput');
+      const sumAmt = $('wdrSummaryAmount');
+      const sumRem = $('wdrSummaryRemaining');
+      if (!amtInput) return;
+      const amt = Number(amtInput.value) || 0;
+      const bal = (currentUser && appData.memberBalances[currentUser.code]) ? appData.memberBalances[currentUser.code] : 0;
+      if (sumAmt) sumAmt.textContent = amt.toFixed(2) + ' บาท';
+      if (sumRem) sumRem.textContent = (bal - amt).toFixed(2) + ' บาท';
+    }
+
+    // Deposit Submit
+    function handleDepositSubmit(e) {
+      if (e) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+      }
+      const mSel = $('depMemberSelect');
+      const wSel = $('depWasteSelect');
+      const wIn = $('depWeightInput');
+      if (!mSel || !wSel || !wIn) return false;
+      const mCode = mSel.value;
+      const wCode = wSel.value;
+      const weight = Number(wIn.value) || 0;
+
+      if (!mCode) { alert('กรุณาเลือกสมาชิกผู้ฝาก'); return false; }
+      if (!wCode) { alert('กรุณาเลือกชนิดขยะ'); return false; }
+      if (weight <= 0) { alert('กรุณาระบุปริมาณน้ำหนักให้ถูกต้อง (มากกว่า 0 กก.)'); return false; }
+
+      const user = (appData.users || []).find(u => u.code === mCode);
+      const priceObj = (appData.prices || []).find(p => p.code === wCode);
+      const unitPrice = priceObj ? Number(priceObj.price) : 0;
+      const total = weight * unitPrice;
+
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      const receiptNo = 'RCP-' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '-' + String((appData.deposits.length || 0) + 1).padStart(4, '0');
+
+      const depositData = {
+        receipt: receiptNo,
+        date: dateStr,
+        memberCode: mCode,
+        name: user ? user.name : mCode,
+        dept: user ? user.dept : 'อบต.ตาคลี',
+        wasteCode: wCode,
+        category: priceObj ? priceObj.category : 'ขยะรีไซเคิล',
+        subType: priceObj ? priceObj.subType : wCode,
+        weight: weight,
+        unitPrice: unitPrice,
+        total: total,
+        recordedBy: currentUser ? currentUser.name : 'เจ้าหน้าที่'
+      };
+
+      appData.deposits.unshift(depositData);
+      appData.memberBalances[mCode] = (appData.memberBalances[mCode] || 0) + total;
+
+      // Sync with Google Sheets if in GAS
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            console.log('Recorded to Google Sheets successfully:', res);
+          })
+          .withFailureHandler(function(err) {
+            console.warn('Sheets record warning:', err);
+          })
+          .recordDeposit({
+            memberCode: mCode,
+            memberName: depositData.name,
+            dept: depositData.dept,
+            wasteCode: wCode,
+            category: depositData.category,
+            subType: depositData.subType,
+            weight: weight,
+            unitPrice: unitPrice,
+            recordedBy: depositData.recordedBy
+          });
+      }
+
+      initApp();
+      if (currentUser && currentUser.code === mCode) {
+        selectUser(currentUser);
+      }
+
+      wIn.value = '';
+      const tDis = $('depTotalDisplay');
+      if (tDis) tDis.value = '0.00';
+
+      openThermalModal(depositData);
+      return false;
+    }
+
+    // Withdrawal Submit
+    function handleWithdrawalSubmit(e) {
+      if (e) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+      }
+      if (!currentUser) { alert('กรุณาเข้าสู่ระบบก่อน'); return false; }
+      const amtInput = $('wdrAmountInput');
+      if (!amtInput) return false;
+      const amt = Number(amtInput.value) || 0;
+      const currentBal = appData.memberBalances[currentUser.code] || 0;
+
+      if (amt <= 0) { alert('กรุณาระบุจำนวนเงินที่ต้องการถอนให้ถูกต้อง'); return false; }
+      if ((currentBal - amt) < 50.00) {
+        alert('ไม่สามารถถอนได้: ต้องมียอดเงินคงเหลือติดบัญชีไม่น้อยกว่า 50.00 บาท (ยอดคงเหลือปัจจุบัน: ' + currentBal.toFixed(2) + ' บาท)');
+        return false;
+      }
+
+      const now = new Date();
+      const reqNo = 'WDR-' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '-' + String((appData.withdrawals.length || 0) + 1).padStart(3, '0');
+      const dateStr = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+      const wdrData = {
+        reqNo: reqNo,
+        date: dateStr,
+        memberCode: currentUser.code,
+        name: currentUser.name,
+        dept: currentUser.dept,
+        amount: amt,
+        status: 'รออนุมัติกองคลัง',
+        approvedAt: '',
+        approvedBy: ''
+      };
+
+      appData.withdrawals.unshift(wdrData);
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            console.log('Withdrawal requested in Google Sheets:', res);
+          })
+          .withFailureHandler(function(err) {
+            console.warn('Sheets withdraw warning:', err);
+          })
+          .submitWithdrawal({
+            memberCode: currentUser.code,
+            memberName: currentUser.name,
+            dept: currentUser.dept,
+            amount: amt
+          });
+      }
+
+      amtInput.value = '';
+      initApp();
+      selectUser(currentUser);
+      alert('✅ ส่งคำขอถอนเงินสดจำนวน ' + amt.toFixed(2) + ' บาท เรียบร้อยแล้ว (โปรดรอเจ้าหน้าที่กองคลังตรวจสอบและอนุมัติ)');
+      return false;
+    }
+
+    // Register User Submit
+    function handleAddUserSubmit(e) {
+      if (e) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+      }
+      const nameInput = $('newUserName');
+      const deptInput = $('newUserDept');
+      const phoneInput = $('newUserPhone');
+      const idInput = $('newUserNatId');
+      if (!nameInput || !deptInput) return false;
+
+      const name = nameInput.value.trim();
+      const dept = deptInput.value;
+      const phone = phoneInput ? phoneInput.value.trim() : '';
+      const natId = idInput ? idInput.value.trim() : '';
+
+      if (!name) { alert('กรุณาระบุชื่อ-นามสกุล'); return false; }
+
+      const newCode = 'MB' + String((appData.users.length || 0) + 1).padStart(3, '0');
+      const newUser = {
+        code: newCode,
+        name: name,
+        dept: dept,
+        phone: phone || '08x-xxx-xxxx',
+        nationalId: natId,
+        email: newCode.toLowerCase() + '@takhli.local',
+        role: 'member',
+        password: 'password123'
+      };
+
+      appData.users.push(newUser);
+      appData.memberBalances[newCode] = 0;
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            console.log('User registered in Google Sheets:', res);
+          })
+          .withFailureHandler(function(err) {
+            console.warn('Sheets user register warning:', err);
+          })
+          .registerUser({
+            code: newCode,
+            name: name,
+            dept: dept,
+            nationalId: natId,
+            phone: phone
+          });
+      }
+
+      closeAddUserModal();
+      initApp();
+      selectUser(newUser);
+      alert('🎉 ลงทะเบียนสมาชิกสำเร็จ! รหัสสมาชิกของคุณคือ: ' + newCode + ' (สามารถใช้เข้าสู่ระบบได้ทันที)');
+      return false;
+    }
+
+    // Add / Update Price Submit
+    function handleAddPriceSubmit(e) {
+      if (e) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+      }
+      const catInput = $('newPriceCategory');
+      const subInput = $('newPriceSubType');
+      const valInput = $('newPriceValue');
+      if (!catInput || !subInput || !valInput) return false;
+
+      const cat = catInput.value;
+      const sub = subInput.value.trim();
+      const val = Number(valInput.value) || 0;
+
+      if (!sub) { alert('กรุณาระบุชนิดขยะย่อย'); return false; }
+      if (val <= 0) { alert('กรุณาระบุราคาที่ถูกต้อง'); return false; }
+
+      const codePrefix = cat === 'กระดาษ' ? 'W-P' : (cat === 'พลาสติก' ? 'W-PL' : (cat === 'โลหะ' ? 'W-M' : 'W-G'));
+      const newCode = codePrefix + String(appData.prices.length + 1).padStart(2, '0');
+
+      const newPrice = {
+        code: newCode,
+        category: cat,
+        subType: sub,
+        price: val
+      };
+
+      appData.prices.push(newPrice);
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            console.log('Price saved to Sheets:', res);
+          })
+          .withFailureHandler(function(err) {
+            console.warn('Sheets price warning:', err);
+          })
+          .updatePrice({
+            code: newCode,
+            category: cat,
+            subType: sub,
+            price: val,
+            updatedBy: currentUser ? currentUser.name : 'แอดมิน'
+          });
+      }
+
+      closeAddPriceModal();
+      initApp();
+      alert('✅ บันทึกราคารับซื้อขยะเรียบร้อยแล้ว');
+      return false;
+    }
+
+    // Renderers
+    function renderUserSelector() {
+      const depSel = $('depMemberSelect');
+      if (!depSel) return;
+      depSel.innerHTML = '<option value="">-- กรุณาเลือกสมาชิก --</option>';
+      (appData.users || []).forEach(u => {
+        const dOpt = document.createElement('option');
+        dOpt.value = u.code;
+        dOpt.textContent = '[' + u.code + '] ' + u.name + ' - ' + u.dept;
+        depSel.appendChild(dOpt);
+      });
+    }
+
+    function renderWasteSelector() {
+      const sel = $('depWasteSelect');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">-- เลือกชนิดขยะ --</option>';
+      (appData.prices || []).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.code;
+        opt.textContent = '[' + p.category + '] ' + p.subType + ' (' + Number(p.price).toFixed(2) + ' บ./กก.)';
+        sel.appendChild(opt);
+      });
+    }
+
+    function renderDepositTable() {
+      const tbody = $('depositTableBody');
+      if (!tbody) return;
+      if ((appData.deposits || []).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400">ยังไม่มีรายการ</td></tr>';
+        return;
+      }
+      tbody.innerHTML = appData.deposits.slice(0, 15).map(d =>
+        '<tr class="hover:bg-slate-50">' +
+          '<td class="p-2.5 font-mono text-[11px] font-bold text-slate-500">' + d.receipt + '</td>' +
+          '<td class="p-2.5">' + d.date + '</td>' +
+          '<td class="p-2.5 font-bold">' + d.name + '</td>' +
+          '<td class="p-2.5"><span class="px-2 py-0.5 bg-emerald-50 text-emerald-800 rounded-md text-[11px] font-bold">' + d.subType + '</span></td>' +
+          '<td class="p-2.5 text-right font-bold">' + Number(d.weight).toFixed(1) + '</td>' +
+          '<td class="p-2.5 text-right font-bold text-emerald-700">+' + Number(d.total).toFixed(2) + '</td>' +
+          '<td class="p-2.5 text-center"><button onclick=\'openThermalModal(' + JSON.stringify(d) + ')\' class="text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg">🧾 สลิป</button></td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function renderPrices() {
+      const container = $('priceCardsContainer');
+      if (!container) return;
+      container.innerHTML = (appData.prices || []).map(p =>
+        '<div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center">' +
+          '<div>' +
+            '<div class="text-[10px] font-bold text-emerald-700 uppercase">' + p.category + '</div>' +
+            '<div class="font-bold text-slate-800 text-sm mt-0.5">' + p.subType + '</div>' +
+            '<div class="text-[10px] text-slate-400 font-mono mt-0.5">' + p.code + '</div>' +
+          '</div>' +
+          '<div class="text-right">' +
+            '<div class="text-lg font-bold text-emerald-800">' + Number(p.price).toFixed(2) + '</div>' +
+            '<div class="text-[10px] text-slate-500">บาท/กก.</div>' +
+          '</div>' +
+        '</div>'
+      ).join('');
+    }
+
+    function renderDashboard() {
+      let totalW = 0, totalM = 0;
+      const deptData = { 'สำนักปลัด': 0, 'กองคลัง': 0, 'กองช่าง': 0, 'กองสาธารณสุข': 0, 'กองการศึกษา': 0 };
+      (appData.deposits || []).forEach(d => {
+        totalW += Number(d.weight) || 0;
+        totalM += Number(d.total) || 0;
+        for (let k in deptData) {
+          if (d.dept && d.dept.includes(k)) deptData[k] += Number(d.weight) || 0;
+        }
+      });
+      const co2 = totalW * 1.85;
+      const sW = $('statTotalWeight');
+      if (sW) sW.innerHTML = totalW.toFixed(1) + ' <span class="text-xs text-slate-500">กก.</span>';
+      const sM = $('statTotalMoney');
+      if (sM) sM.innerHTML = totalM.toFixed(2) + ' <span class="text-xs text-slate-500">บาท</span>';
+      const sC = $('statTotalCO2');
+      if (sC) sC.innerHTML = co2.toFixed(1) + ' <span class="text-xs text-slate-500">kgCO2e</span>';
+      const sT = $('statTotalTrees');
+      if (sT) sT.innerHTML = Math.round(co2 / 9) + ' <span class="text-xs text-slate-500">ต้น</span>';
+      const dCont = $('deptStatsContainer');
+      if (dCont) {
+        dCont.innerHTML = Object.keys(deptData).map(k =>
+          '<div class="p-3 bg-slate-50 rounded-xl border border-slate-200">' +
+            '<div class="text-[11px] font-bold text-slate-600 truncate">' + k + '</div>' +
+            '<div class="text-lg font-bold text-emerald-800 mt-1">' + deptData[k].toFixed(1) + ' <span class="text-[10px] text-slate-500 font-normal">กก.</span></div>' +
+          '</div>'
+        ).join('');
+      }
+    }
+
+    function filterAdminUserList() {
+      const q = ($('adminUserSearchInput')?.value || '').toLowerCase();
+      const dept = $('adminUserDeptFilter')?.value || 'ALL';
+      const tbody = $('adminUserListBody');
+      if (!tbody) return;
+      const filtered = (appData.users || []).filter(u => {
+        const matchQ = !q || u.name.toLowerCase().includes(q) || u.code.toLowerCase().includes(q) || (u.phone && u.phone.includes(q));
+        const matchD = dept === 'ALL' || u.dept.includes(dept);
+        return matchQ && matchD;
+      });
+      tbody.innerHTML = filtered.map((u, idx) => {
+        const bal = (appData.memberBalances && appData.memberBalances[u.code]) ? appData.memberBalances[u.code] : 0;
+        return '<tr class="hover:bg-slate-50">' +
+          '<td class="p-2.5 font-mono text-[11px] font-bold text-slate-500">' + (idx + 1) + '</td>' +
+          '<td class="p-2.5 font-mono font-bold text-emerald-800">' + u.code + '</td>' +
+          '<td class="p-2.5 font-bold text-slate-800">' + u.name + '</td>' +
+          '<td class="p-2.5 text-xs text-slate-600">' + u.dept + '</td>' +
+          '<td class="p-2.5 font-mono text-xs">' + (u.phone || '-') + '</td>' +
+          '<td class="p-2.5 text-right font-bold text-emerald-800">' + bal.toFixed(2) + '</td>' +
+          '<td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ' + (u.role === 'admin' ? 'bg-amber-100 text-amber-800' : (u.role === 'finance' ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-600')) + '">' + u.role + '</span></td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function renderAdminUserList() { filterAdminUserList(); }
+
+    function filterAdminPriceList() { renderAdminPriceList(); }
+
+    function renderAdminPriceList() {
+      const tbody = $('adminPriceListBody');
+      if (!tbody) return;
+      tbody.innerHTML = (appData.prices || []).map((p, idx) =>
+        '<tr class="hover:bg-slate-50">' +
+          '<td class="p-2.5 font-mono font-bold text-emerald-800">' + p.code + '</td>' +
+          '<td class="p-2.5 font-semibold text-slate-700">' + p.category + '</td>' +
+          '<td class="p-2.5 font-bold text-slate-800">' + p.subType + '</td>' +
+          '<td class="p-2.5 text-right font-bold text-emerald-700 text-base">' + Number(p.price).toFixed(2) + '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function filterAdminWithdrawalList() { renderAdminWithdrawalList(); }
+
+    function renderAdminWithdrawalList() {
+      const tbody = $('adminWithdrawalListBody');
+      if (!tbody) return;
+      if ((appData.withdrawals || []).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">ยังไม่มีรายการคำขอถอนเงิน</td></tr>';
+        return;
+      }
+      tbody.innerHTML = appData.withdrawals.map((w, idx) =>
+        '<tr class="hover:bg-slate-50">' +
+          '<td class="p-2.5 font-mono text-[11px] font-bold text-slate-500">' + w.reqNo + '</td>' +
+          '<td class="p-2.5 text-slate-500 text-xs">' + w.date + '</td>' +
+          '<td class="p-2.5"><span class="font-bold">' + w.name + '</span> <span class="text-xs text-slate-400">(' + w.memberCode + ')</span></td>' +
+          '<td class="p-2.5 text-right font-bold text-rose-700 text-base">' + Number(w.amount).toFixed(2) + '</td>' +
+          '<td class="p-2.5 text-center"><span class="px-2.5 py-1 rounded-full text-xs font-bold ' + (w.status === 'อนุมัติแล้ว' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800') + '">' + w.status + '</span></td>' +
+          '<td class="p-2.5 text-center">' +
+            (w.status === 'รออนุมัติกองคลัง' ?
+              '<button onclick="approveWithdrawalReq(\'' + w.reqNo + '\', true)" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold mr-1">อนุมัติ</button>' +
+              '<button onclick="approveWithdrawalReq(\'' + w.reqNo + '\', false)" class="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg text-xs font-bold">ปฏิเสธ</button>' :
+              '<span class="text-xs text-slate-400">เสร็จสิ้น</span>') +
+          '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function approveWithdrawalReq(reqNo, isApproved) {
+      const w = (appData.withdrawals || []).find(x => x.reqNo === reqNo);
+      if (!w) return;
+      const status = isApproved ? 'อนุมัติแล้ว' : 'ไม่อนุมัติ';
+      w.status = status;
+      w.approvedBy = currentUser ? currentUser.name : 'เจ้าหน้าที่กองคลัง';
+      w.approvedAt = new Date().toLocaleDateString('th-TH');
+
+      if (isApproved) {
+        appData.memberBalances[w.memberCode] = (appData.memberBalances[w.memberCode] || 0) - Number(w.amount);
+      }
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            console.log('Withdrawal status updated in Sheets:', res);
+          })
+          .withFailureHandler(function(err) {
+            console.warn('Sheets withdrawal status warning:', err);
+          })
+          .approveWithdrawal(reqNo, isApproved, currentUser ? currentUser.name : 'กองคลัง');
+      }
+
+      initApp();
+      if (currentUser) selectUser(currentUser);
+      alert('✅ ' + status + ' คำขอถอนเงินเลขที่ ' + reqNo + ' เรียบร้อยแล้ว');
+    }
+
+    function exportDataToCsv(sheetType) {
+      let csv = '';
+      let filename = 'Takhli_WasteBank.csv';
+      if (sheetType === 'users') {
+        csv = 'รหัสสมาชิก,ชื่อ-นามสกุล,สังกัด,เบอร์โทร,สิทธิ์,ยอดเงินคงเหลือ\n' +
+          (appData.users || []).map(u => '"' + u.code + '","' + u.name + '","' + u.dept + '","' + (u.phone || '') + '","' + u.role + '",' + ((appData.memberBalances && appData.memberBalances[u.code]) || 0)).join('\n');
+        filename = 'Sheet4_Users_Takhli.csv';
+      } else if (sheetType === 'prices') {
+        csv = 'รหัสขยะ,หมวดหมู่,ชนิดขยะย่อย,ราคาต่อหน่วย_บาท_กก\n' +
+          (appData.prices || []).map(p => '"' + p.code + '","' + p.category + '","' + p.subType + '",' + p.price).join('\n');
+        filename = 'Sheet1_PriceConfig_Takhli.csv';
+      } else if (sheetType === 'deposits') {
+        csv = 'เลขที่ใบเสร็จ,วันเวลา,รหัสสมาชิก,ชื่อสมาชิก,หมวดหมู่,ชนิดขยะ,น้ำหนัก_กก,ราคา,จำนวนเงิน_บาท,ผู้บันทึก\n' +
+          (appData.deposits || []).map(d => '"' + d.receipt + '","' + d.date + '","' + d.memberCode + '","' + d.name + '","' + d.category + '","' + d.subType + '",' + d.weight + ',' + d.unitPrice + ',' + d.total + ',"' + d.recordedBy + '"').join('\n');
+        filename = 'Sheet2_DepositLedger_Takhli.csv';
+      } else if (sheetType === 'withdrawals') {
+        csv = 'เลขที่คำขอ,วันเวลา,รหัสสมาชิก,ชื่อสมาชิก,จำนวนเงิน,สถานะ,ผู้อนุมัติ\n' +
+          (appData.withdrawals || []).map(w => '"' + w.reqNo + '","' + w.date + '","' + w.memberCode + '","' + w.name + '",' + w.amount + ',"' + w.status + '","' + (w.approvedBy || '') + '"').join('\n');
+        filename = 'Sheet3_WithdrawalLedger_Takhli.csv';
+      }
+
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+    }
+
+    function initApp() {
+      try { renderUserSelector(); } catch(e) {}
+      try { renderWasteSelector(); } catch(e) {}
+      try { renderDashboard(); } catch(e) {}
+      try { renderDepositTable(); } catch(e) {}
+      try { renderPrices(); } catch(e) {}
+      try { renderAdminUserList(); } catch(e) {}
+      try { renderAdminPriceList(); } catch(e) {}
+      try { renderAdminWithdrawalList(); } catch(e) {}
+    }
+
+    // Attach all functions explicitly to window for Google Apps Script HtmlService
+    window.quickLogin = quickLogin;
+    window.selectUser = selectUser;
+    window.handleLoginSubmit = handleLoginSubmit;
+    window.handleModalLoginSubmit = handleModalLoginSubmit;
+    window.logout = logout;
+    window.showLoginScreen = showLoginScreen;
+    window.showAppScreen = showAppScreen;
+    window.openRegisterModal = openRegisterModal;
+    window.openAddUserModal = openAddUserModal;
+    window.closeAddUserModal = closeAddUserModal;
+    window.openLoginModal = openLoginModal;
+    window.closeLoginModal = closeLoginModal;
+    window.openAddPriceModal = openAddPriceModal;
+    window.closeAddPriceModal = closeAddPriceModal;
+    window.openThermalModal = openThermalModal;
+    window.closeThermalModal = closeThermalModal;
+    window.openPassbookPrintModal = openPassbookPrintModal;
+    window.openPassbookModal = openPassbookModal;
+    window.closePassbookModal = closePassbookModal;
+    window.switchTab = switchTab;
+    window.switchAdminSubTab = switchAdminSubTab;
+    window.onWasteCategoryChanged = onWasteCategoryChanged;
+    window.onWasteSelected = onWasteSelected;
+    window.calculateDepositTotal = calculateDepositTotal;
+    window.calculateSubTotal = calculateSubTotal;
+    window.calculateWithdrawalSummary = calculateWithdrawalSummary;
+    window.handleDepositSubmit = handleDepositSubmit;
+    window.handleWithdrawalSubmit = handleWithdrawalSubmit;
+    window.handleAddUserSubmit = handleAddUserSubmit;
+    window.handleAddPriceSubmit = handleAddPriceSubmit;
+    window.filterAdminUserList = filterAdminUserList;
+    window.filterAdminPriceList = filterAdminPriceList;
+    window.filterAdminWithdrawalList = filterAdminWithdrawalList;
+    window.approveWithdrawalReq = approveWithdrawalReq;
+    window.exportDataToCsv = exportDataToCsv;
+    window.handleLogout = logout;
+    window.reloadAllData = function() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(serverData) {
+            if (serverData && serverData.users && serverData.users.length > 0) {
+              appData = serverData;
+              initApp();
+              if (currentUser) {
+                const ref = appData.users.find(u => u.code === currentUser.code);
+                if (ref) selectUser(ref);
+              }
+              alert('✅ รีเฟรชและซิงค์ข้อมูลชีตล่าสุดเรียบร้อยแล้ว');
+            }
+          })
+          .withFailureHandler(function(e) {
+            alert('⚠️ ซิงค์ข้อมูล: ' + (e.message || e));
+          })
+          .getInitialData();
+      } else {
+        initApp();
+        alert('✅ อัปเดตข้อมูลระบบเรียบร้อย');
+      }
+    };
+
+    // Bootstrap function executed AFTER all declarations
+    function bootstrap() {
+      try {
+        initApp();
+      } catch(e) {
+        console.warn('initApp note:', e);
+      }
+
+      // Always start at Login Screen first as required
+      showLoginScreen();
+
+      // Sync with Google Apps Script
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(serverData) {
+            try {
+              if (serverData && serverData.users && serverData.users.length > 0) {
+                appData = serverData;
+                initApp();
+                if (currentUser) {
+                  const refreshed = appData.users.find(u => u.code === currentUser.code);
+                  if (refreshed) selectUser(refreshed);
+                }
+              }
+            } catch(e) {
+              console.warn('serverData handle error:', e);
+            }
+          })
+          .withFailureHandler(function(err) {
+            console.log('Background sheets sync note:', err);
+          })
+          .getInitialData();
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootstrap);
+    } else {
+      bootstrap();
+    }
+  </script>
+</body>
+</html>
